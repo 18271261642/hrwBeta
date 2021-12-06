@@ -1,0 +1,2 @@
+include ':app',':org.eclipse.paho.android.service', ':managersetting', ':base',':multiple-status-view'
+project(':org.eclipse.paho.android.service').projectDir = new File('org.eclipse.paho.android.service')

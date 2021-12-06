@@ -1,0 +1,954 @@
+package com.jkcq.hrwtv.wu.newversion.activity
+
+import android.annotation.SuppressLint
+import android.content.*
+import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
+import android.text.TextUtils
+import android.util.Log
+import android.view.KeyEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import com.jkcq.hrwtv.AllocationApi
+import com.jkcq.hrwtv.R
+import com.jkcq.hrwtv.base.mvp.BaseMVPActivity
+import com.jkcq.hrwtv.configure.Constant
+import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
+import com.jkcq.hrwtv.heartrate.bean.SecondHeartRateBean
+import com.jkcq.hrwtv.heartrate.bean.UserBean
+import com.jkcq.hrwtv.heartrate.model.MainActivityView
+import com.jkcq.hrwtv.heartrate.presenter.MainActivityPresenter
+import com.jkcq.hrwtv.http.bean.*
+import com.jkcq.hrwtv.service.UserContans
+import com.jkcq.hrwtv.ui.view.DialogYesOrNo
+import com.jkcq.hrwtv.util.*
+import com.jkcq.hrwtv.wu.manager.Preference
+import com.jkcq.hrwtv.wu.newversion.view.PKItemView
+import com.jkcq.hrwtv.wu.obsever.HrDataObservable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
+import io.reactivex.functions.Consumer
+import io.reactivex.schedulers.Schedulers
+import kotlinx.android.synthetic.main.activity_ncourse.*
+import kotlinx.android.synthetic.main.activity_pk_content.*
+import kotlinx.android.synthetic.main.include_course_bottom.*
+import kotlinx.android.synthetic.main.item_user_card.view.*
+import kotlinx.android.synthetic.main.layout_course_select.*
+import kotlinx.android.synthetic.main.ninclude_title.*
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
+
+/**
+ * PK模式页面
+ */
+class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), MainActivityView {
+    var mToken: String by Preference(Preference.token, "")
+    var mbrandName: String by Preference(Preference.brandName, "")
+    var mbrandId: String by Preference(Preference.brandId, "")
+    var mclubId: String by Preference(Preference.clubId, "")
+    var mclubName: String by Preference(Preference.clubName, "")
+    var mUserId: String by Preference(Preference.userId, "")
+    var mNikeName: String by Preference(Preference.nickname, "")
+    private var intervalTime = 0
+    var reMoveList = mutableListOf<Int>()
+
+
+    var redViewlist = ConcurrentHashMap<Int, PKItemView>()
+    var blueViewList = ConcurrentHashMap<Int, PKItemView>()
+
+
+    //  private var myMqttService: BaseMqttservice? = null
+    private val UPDATE_HALL = 115
+    private val REMOVE_DATA = 116;
+    private val ADD_DATA = 117;
+
+    private var mAddList = ConcurrentLinkedQueue<DevicesDataShowBean>()
+    private var mCurrentRemoveIndex = 0
+    private var isAddItem = false;
+
+    private val secondMap = ConcurrentHashMap<String, SecondHeartRateBean>()
+
+    //    var dataShowBeans = ArrayList<DevicesDataShowBean>()
+    var mDataShowBeans = CopyOnWriteArrayList<DevicesDataShowBean>();
+    var mRedDataShowBeans = ArrayList<DevicesDataShowBean>();
+    var mBlueDataShowBeans = ArrayList<DevicesDataShowBean>();
+
+    var mRedCurrentShowBeans = ArrayList<DevicesDataShowBean>();
+    var mBlueCurrentShowBeans = ArrayList<DevicesDataShowBean>();
+
+    private val mHandler = object : Handler(Looper.getMainLooper()) {
+
+        override fun handleMessage(msg: Message) {
+            super.handleMessage(msg)
+            when (msg.what) {
+                UPDATE_HALL -> {
+                    //原意是只更新改变的数据，但实际上更新了所有数据
+                    //heartresult_view.updateData(mDataShowBeans, isSort, mSortType)
+                    // myMqttService!!.setTask(false)
+                }
+                ADD_DATA -> {
+                    if (mAddList.size > 0) {
+
+                        var addDevice = mAddList.poll();
+                        var hasExsit = false
+
+                        if (mDataShowBeans.size == 0) {
+                            UserContans.classTime = addDevice.joinTime
+                        }
+
+                        mDataShowBeans.forEach {
+                            if (it.devicesSN.equals(addDevice.devicesSN)) {
+                                hasExsit = true
+                            }
+
+                        }
+                        if (!hasExsit) {
+                            mDataShowBeans.add(addDevice)
+                        }
+                        // heartresult_view.insertItem(mAddList.poll(), mDataShowBeans.size - 1)
+                        // myMqttService!!.setTask(false)
+                    }
+
+                }
+                REMOVE_DATA -> {
+                    reMoveList.forEach {
+                        //removemAddList.add(mDataShowBeans[it])
+                        //heartresult_view.removeItem(it)
+                    }
+                    // myMqttService!!.setTask(false)
+                }
+            }
+        }
+    }
+
+
+    override fun getClubSuccess(info: ClubInfo?) {
+        if (TextUtils.isEmpty(info?.getUid())) {
+            tv_name.setText("未知会所")
+            //showSettingView();
+        } else {
+            tv_name.setText(info?.getName())
+        }
+    }
+
+    //课程模式
+    override fun getCourseListSuccess(courseInfoList: MutableList<CourseList.CourseInfo>?) {
+    }
+
+    //课程模式
+    override fun getAllUserSuccess(userInfos: MutableList<CourseUserInfo>?) {
+    }
+
+    //课程模式
+    override fun uploadAllDataSuccess() {
+
+        finish()
+        //跳转到结果页面
+        startActivity(Intent(this, PkResultActivity::class.java))
+
+    }
+
+
+    var AllData = false;
+
+    override fun createPresenter(): MainActivityPresenter {
+        return MainActivityPresenter()
+    }
+
+    override fun getLayoutId(): Int = R.layout.activity_npk
+
+    override fun initView() {
+        // mDataShowBeans = heartresult_view.getAdapterData()
+        layout_select_user.visibility = View.VISIBLE
+        layout_select_user.setOnClickListener {
+            var intent = Intent(this, UserSelectActivity::class.java)
+            intent.putExtra("firstCome", false)
+            intent.putExtra("currentMode", Constant.MODE_PK_RED)
+            startActivity(intent)
+        }
+
+        layout_setting.setOnClickListener {
+            back()
+        }
+
+
+    }
+
+    fun showNoupdate() {
+        DialogYesOrNo(this, object : DialogYesOrNo.OnButtonClick {
+            override fun onButtonClickCancel() {
+                UserContans.isPause = false
+            }
+
+            override fun onButtonClickSure() {
+                UserContans.isPause = true;
+                mCurrentDownTimer?.cancel()
+                finish()
+            }
+        }, "本次课程时间过短，退出将不保存运动数据").show()
+    }
+
+    fun showDialog() {
+        DialogYesOrNo(this, object : DialogYesOrNo.OnButtonClick {
+            override fun onButtonClickCancel() {
+                UserContans.isPause = false
+            }
+
+            override fun onButtonClickSure() {
+                UserContans.isPause = true;
+                mCurrentDownTimer?.cancel()
+                upgradeCourseData()
+            }
+        }, "确认结束课程？").show()
+    }
+
+    fun back() {
+        var toalTime = mCurrentHeartRateClassInfo.duration * 1000L
+        if (toalTime - mRemainTime <= toalTime * 0.1) {
+            showNoupdate()
+        } else {
+            Log.e("toalTime==", "toalTime=" + toalTime + "mRemainTime=" + mRemainTime)
+            showDialog()
+        }
+    }
+
+
+    var endTime = 0L
+    var winGroup = "0"
+    fun upgradeCourseData() {
+        mCurrentDownTimer?.cancel()
+        Logger.e("upgradeCourseData--------------------------------------")
+        if (endTime != 0L) {
+            endTime = System.currentTimeMillis()
+        }
+        AllData = true;
+
+        mActPresenter.postPk(
+            mRedDataShowBeans, mBlueDataShowBeans,
+            UserContans.info.id,
+            "",
+            "2",
+            endTime, redSumCal, blueSumCal
+        )
+    }
+
+
+    //删除一个人需要重新排序
+    //添加一个人也需要重新排序
+
+    fun UpdateAllData() {
+
+    }
+
+    fun addData() {
+
+    }
+
+    //人数没有变化的时候数据刷新
+    fun updateData() {
+        //AdapterUtil.setItemBg(holder.l_layout, Integer.parseInt(info.getPrecent()), mContext, mContext.getResources().getDimension(R.dimen.dp8), holder.iv_current_stren, isCard1);
+    }
+
+    var isRestart = false;
+    override fun initData() {
+
+
+        redViewlist.put(0, red_1)
+        redViewlist.put(1, red_2)
+        redViewlist.put(2, red_3)
+        redViewlist.put(3, red_4)
+        redViewlist.put(4, red_5)
+
+
+        blueViewList.put(0, blue_1)
+        blueViewList.put(1, blue_2)
+        blueViewList.put(2, blue_3)
+        blueViewList.put(3, blue_4)
+        blueViewList.put(4, blue_5)
+
+        UserContans.classTime = 0
+        UserContans.isPause = false;
+        HrDataObservable.getInstance().addObserver(this)
+        tv_name.setText(mclubName)
+        DoubleClickUtil.getInstance().initHandler(Handler(Looper.getMainLooper()))
+        tv_man_count.setText(getString(R.string.people, "0"))
+        updateTime()
+        val filter = IntentFilter()
+        filter.addAction(Intent.ACTION_TIME_TICK)
+        registerReceiver(mTimeReceiver, filter)
+        isRestart = intent.getBooleanExtra("isRestart", false)
+        if (isRestart) {
+            restartCourse()
+        } else {
+            showCourseModel()
+            starCourse()
+        }
+        timerScroll()
+    }
+
+    fun starCourse() {
+        mRemainTime = mCurrentHeartRateClassInfo.duration * 1000
+        startDownTimer()
+    }
+
+    fun restartCourse() {
+        var list = CacheDataUtil.getCourseUserList()
+        if (list != null && list.size > 0) {
+            mDataShowBeans.addAll(list)
+            dealPkData()
+            // heartresult_view.updateData(mDataShowBeans, isSort, mSortType)
+        }
+
+        var course = CacheDataUtil.getCourseInfo()
+        if (course != null) {
+            UserContans.info = course
+        }
+        mRemainTime = CacheDataUtil.getRemainTime()
+        showCourseModel()
+        reStartDowTimer()
+    }
+
+
+    /**
+     * 系统的一个广播，每分钟会发送一个广播
+     */
+    var mTimeReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_TIME_TICK) {
+                updateTime()
+            }
+        }
+    }
+
+    /**
+     * 更新标题栏的时间显示
+     */
+    private fun updateTime() {
+        val calendar = Calendar.getInstance()
+        tv_time.setText(
+            String.format(
+                "%02d",
+                calendar.get(Calendar.HOUR_OF_DAY)
+            ) + ":" + String.format("%02d", calendar.get(Calendar.MINUTE))
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mCurrentDownTimer?.cancel()
+        HrDataObservable.getInstance().deleteObserver(this)
+        unregisterReceiver(mTimeReceiver)
+        AllocationApi.getAllSNSet().clear()
+        UserContans.courseClearMap()
+        mCurrentRemoveIndex = 0
+        // heartresult_view.release()
+    }
+
+
+    override fun update(o: Observable?, arg: Any?) {
+        super.update(o, arg)
+        /*  if (UserContans.isPause) {
+              return
+          }
+          if (o is HrDataObservable) {
+
+              if (UserContans.classTime == 0L) {
+                  endTime = System.currentTimeMillis()
+                  doHallModel(arg as ConcurrentHashMap<String, Int>)
+              }
+              if ((System.currentTimeMillis() - UserContans.classTime) / 1000 <= UserContans.couserTime) {
+                  //
+                  endTime = System.currentTimeMillis()
+                  doHallModel(arg as ConcurrentHashMap<String, Int>)
+              }
+          }*/
+    }
+
+    var userInfo: UserBean? = null
+    var age = 0
+    var weight = 0f
+    var gander = ""
+    var heartRateBean: SecondHeartRateBean? = null
+    var heartRate = 0
+    var cal: Double = 0.0
+    var dataShowBean: DevicesDataShowBean? = null
+    var dataSize = 0
+
+    private fun doHallModel(
+        sources: ConcurrentHashMap<String, Int>
+    ) {
+        //开始的时间
+        //查询用户信息
+        doCommonHRTask(sources)
+        Logger.e("doCommonHRTask", sn + "secondMap=" + secondMap.size)
+        //最新1秒钟的数据，1秒内接收到的所有设备的所有心率 已经获取到心率数据和用户数据的 map
+        var key = ""
+        var pkMode = 0
+        secondMap.forEach {
+            key = it.key
+            userInfo = secondMap[key]!!.userInfo
+            if (userInfo == null && UserContans.userInfoHashMap.containsKey(key)) {
+                userInfo = UserContans.userInfoHashMap[key]
+            }
+            if (userInfo != null) {
+                age = userInfo!!.age
+                weight = userInfo!!.weight
+                gander = userInfo!!.sex
+                pkMode = userInfo!!.currentMod;
+            }
+            //先计算出值
+            // 刷新Adapter,position = i；
+            heartRateBean = secondMap[key]
+            //一秒钟的心率值
+            heartRate = heartRateBean!!.heart
+            if (heartRate < 30) {
+                heartRate = 0;
+            }
+
+            dataShowBean = mDataShowBeans.findLast {
+                it.devicesSN == key
+            }
+            if (dataShowBean != null) {
+                dataShowBean!!.liveHeartRate = heartRate
+                dataShowBean!!.age = age
+                dataShowBean!!.weight = weight
+                dataShowBean!!.sex = gander
+                if (userInfo != null) {
+                    dataShowBean!!.height = userInfo!!.height
+                    dataShowBean!!.headUrl = userInfo!!.avatar
+                    dataShowBean!!.nikeName = userInfo!!.nickname
+                    dataShowBean!!.userId = userInfo!!.id
+                }
+                //结果界面只更新实时心率字段
+                dataShowBean!!.time = heartRateBean!!.time
+                var precent = HeartRateConvertUtils.hearRate2Percent(
+                    heartRate,
+                    HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                ).toInt()
+                dataShowBean!!.precent = precent.toString()
+
+                if (heartRate == 0) {
+                    dataShowBean!!.addStageHeart(key, -1)
+                } else {
+                    dataShowBean!!.addStageHeart(key, precent)
+                }
+                dataShowBean!!.pkTeam = pkMode
+                dataShowBean!!.setAllHrList(heartRate)
+
+                Log.e("heartRate", "" + heartRate + "precent=" + precent)
+                //计算每一分钟的数据
+                if (dataShowBean!!.allHrList.size == 60 / Constant.REFRESH_RATE) {
+                    dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
+                    dataShowBean!!.allHrList.clear()
+                    var minHr = 0
+                    var sum = 0
+                    var size = 0
+                    dataShowBean!!.calAllHrList.forEach {
+                        if (it > 30) {
+                            size++
+                            sum += it
+                        }
+                    }
+                    if (sum == 0) {
+                        minHr = 0
+                    } else {
+                        minHr = sum / size
+                    }
+                    dataShowBean!!.addMinHrList(minHr)
+
+                    if (gander.equals("1")) {
+                        cal = HeartRateConvertUtils.hearRate2CaloriForMan(
+                            heartRate,
+                            age,
+                            weight,
+                            Constant.REFRESH_RATE,
+                            Constant.UNIT_MILLS
+                        )
+                    } else {
+                        cal = HeartRateConvertUtils.hearRate2CaloriForWoman(
+                            heartRate,
+                            age,
+                            weight,
+                            Constant.REFRESH_RATE,
+                            Constant.UNIT_MILLS
+                        )
+                    }
+                    if (cal < 0) {
+                        cal = 0.0
+                    }
+                    dataShowBean!!.cal = cal
+                }
+            } else {
+                dataShowBean = DevicesDataShowBean()
+                dataShowBean!!.sortType = Constant.TYPE_DEF
+                dataShowBean!!.pkTeam = pkMode
+                dataShowBean!!.age = age
+                dataShowBean!!.joinTime = System.currentTimeMillis()
+                dataShowBean!!.weight = weight
+                dataShowBean!!.sex = gander
+                if (userInfo != null) {
+                    dataShowBean!!.height = userInfo!!.height
+                    dataShowBean!!.headUrl = userInfo!!.avatar
+                    dataShowBean!!.nikeName = userInfo!!.nickname
+                    dataShowBean!!.userId = userInfo!!.id
+                }
+                dataShowBean!!.liveHeartRate = heartRate
+                dataShowBean!!.devicesSN = key
+                if (cal < 0) {
+                    cal = 0.0
+                }
+                dataShowBean!!.cal = cal
+                dataShowBean!!.addStageHeart(key, 0)
+                dataShowBean!!.time = heartRateBean!!.time
+                //设置课程id
+                dataShowBean!!.precent = HeartRateConvertUtils.hearRate2Percent(
+                    heartRate,
+                    HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                ).toInt().toString()
+                //保存SN
+                AllocationApi.getAllSNSet().add(key)
+                mAddList.offer(dataShowBean)
+                mHandler.sendEmptyMessage(ADD_DATA)
+                isAddItem = true
+            }
+        }
+        //每10s刷新数据
+        dataSize = mDataShowBeans.size
+        mHandler.post(Runnable {
+            //  heartresult_view.isNoDevice(dataSize < 1)
+            tv_man_count.setText(getString(R.string.people, "" + dataSize))
+        })
+
+        Logger.e("doCommonHRTask", sn + "dataSize=" + dataSize)
+        //需要对数据进行分类
+        if (dataSize > 0) {
+
+            intervalTime += Constant.REFRESH_RATE
+            Logger.e("doCommonHRTask", "doHallTask-----------")
+            doHallTask()
+            Logger.e("doCommonHRTask", "dealPkData-----------")
+            CacheDataUtil.saveCourseUserBean(mDataShowBeans)
+            dealPkData()
+            /* if (intervalTime * Constant.REFRESH_RATE % 10 != 0) {
+                 mHandler.sendEmptyMessage(UPDATE_HALL)
+             } else if (intervalTime * Constant.REFRESH_RATE % 10 == 0) {
+
+             }//每10s全部刷新一次*/
+        }
+    }
+
+    var redSumCal = 0.0
+    var blueSumCal = 0.0
+
+    fun dealPkData() {
+
+        var size = mDataShowBeans.size / 10
+        if (mDataShowBeans.size % 10 != 0) {
+            size += 1
+        }
+        mTotalPage = size
+        setDotView(true, currentPage - 1)
+        Logger.e(
+            "doCommonHRTask",
+            sn + "dealPkData=" + mRedDataShowBeans.size + "mBlueDataShowBeans=" + mBlueDataShowBeans.size + ",redSumCal=" + redSumCal + "blueSumCal=" + blueSumCal
+        )
+
+        runOnUiThread {
+            if (mRedDataShowBeans.size > 0) {
+                mRedDataShowBeans.sort()
+            }
+            if (mBlueDataShowBeans.size > 0) {
+                mBlueDataShowBeans.sort()
+            }
+            mRedCurrentShowBeans.clear()
+            mBlueCurrentShowBeans.clear()
+
+            var startRedIndex = (currentPage - 1) * 5
+            var endRedIndex = currentPage * 5
+            if (endRedIndex >= mRedDataShowBeans.size) {
+                endRedIndex = mRedDataShowBeans.size
+            }
+            for (i in startRedIndex until endRedIndex) {
+                mRedCurrentShowBeans.add(mRedDataShowBeans.get(i))
+            }
+            var startBlueIndex = (currentPage - 1) * 5
+            var endBlueIndex = currentPage * 5
+            if (endBlueIndex >= mBlueDataShowBeans.size) {
+                endBlueIndex = mBlueDataShowBeans.size
+            }
+            for (i in startBlueIndex until endBlueIndex) {
+                mBlueCurrentShowBeans.add(mBlueDataShowBeans.get(i))
+            }
+            for (i in 0 until mRedCurrentShowBeans.size) {
+                redViewlist.get(i)!!.visibility = View.VISIBLE
+                redViewlist.get(i)!!.updateAllData(mRedCurrentShowBeans.get(i))
+            }
+            for (i in 0 until mBlueCurrentShowBeans.size) {
+                blueViewList.get(i)!!.visibility = View.VISIBLE
+                blueViewList.get(i)!!.updateAllData(mBlueCurrentShowBeans.get(i))
+            }
+
+            Logger.e(
+                "doCommonHRTask",
+                sn + "mRedCurrentShowBeans=" + mRedCurrentShowBeans.size + "mBlueCurrentShowBeans=" + mBlueCurrentShowBeans.size
+            )
+
+            tv_red_cal.setText(HeartRateConvertUtils.doubleParseStr(redSumCal));
+            tv_blue_cal.setText(HeartRateConvertUtils.doubleParseStr(blueSumCal));
+            var redIntSumCal = redSumCal.toInt();
+            var blueIntSumCal = blueSumCal.toInt();
+            var sumcal = redIntSumCal + blueIntSumCal;
+            if (redIntSumCal == blueIntSumCal) {
+                view_progress.max = 100
+                view_progress.progress = 50
+            } else {
+                view_progress.max = sumcal
+                view_progress.progress = redIntSumCal
+            }
+            //进度条更新
+            for (i in mRedCurrentShowBeans.size until 5) {
+                redViewlist.get(i)!!.visibility = View.INVISIBLE
+            }
+            for (i in mBlueCurrentShowBeans.size until 5) {
+                blueViewList.get(i)!!.visibility = View.INVISIBLE
+            }
+
+        }
+
+
+    }
+
+    var sn = ""
+    var hrValue = 0
+
+    @SuppressLint("LongLogTag")
+    private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
+
+        sources.forEach {
+
+            sn = it.key
+            hrValue = it.value
+            if (!UserContans.userInfoHashMap.containsKey(sn)) {
+                if (!UserContans.mCacheMap.containsKey(sn)) {
+                    //1.查询用户信息
+                }
+            } else {
+                if (UserContans.userInfoHashMap.containsKey(sn)) {
+                    //这里有两个逻辑，一个是红队的用户，一个蓝队的用户  数据选择选择了就不要弄了
+                    var select = UserContans.userInfoHashMap.get(sn)!!.isSelect
+                    Logger.e("doCommonHRTask", sn + "select=+" + select)
+                    if (select) {
+                        val secondHeartRateBean: SecondHeartRateBean =
+                            if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
+                                UserContans.secondHeartRateBeanHashMap.get(sn)!!
+                            } else {
+                                SecondHeartRateBean()
+                            }
+                        //接收到的所有心率数据
+                        secondHeartRateBean.devicesSN = sn
+                        secondHeartRateBean.heartList.add(hrValue)
+                        secondHeartRateBean.heart = hrValue
+                        secondHeartRateBean.isTask = false
+                        secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
+                        //接收到的数据的时间戳
+                        UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
+
+                    } else {
+                        if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
+                            UserContans.secondHeartRateBeanHashMap.remove(sn)
+                        }
+                    }
+
+                }
+
+
+            }
+        }
+        //这里需要
+        secondMap.clear()
+        secondMap.putAll(UserContans.secondHeartRateBeanHashMap)
+
+        // sources.clear();
+
+        //总数据
+    }
+
+    /**
+     * 大厅模式
+     *
+     * @param sources
+     */
+
+    var time = 0L
+    var isRemove = false;
+    private fun doHallTask() {
+
+        try {
+
+
+            //判断设备是否掉线，掉线的移除
+            val currentTime = System.currentTimeMillis()
+            //  var isRemove = false
+            //接收数据的时间
+            reMoveList.clear()
+            isRemove = false
+
+            mRedDataShowBeans.clear()
+            mBlueDataShowBeans.clear()
+            redSumCal = 0.0
+            blueSumCal = 0.0
+            for (i in 0 until mDataShowBeans.size) {
+                val dropBean = mDataShowBeans.get(i);
+                if (dropBean.pkTeam == Constant.MODE_PK_RED) {
+                    redSumCal += dropBean.cal
+                    mRedDataShowBeans.add(dropBean)
+                } else {
+                    blueSumCal += dropBean.cal
+                    mBlueDataShowBeans.add(dropBean)
+                }
+
+                //已经掉线，直接移除
+                sn = dropBean.devicesSN
+                if (UserContans.mSnHrTime.containsKey(sn)) {
+                    time = UserContans.mSnHrTime.get(sn)!!
+                    if (currentTime - time >= Constant.DROP_TIME) {
+                        UserContans.mSnHrMap.put(sn, 0)
+                    }
+                }
+                //如果两分钟没有数据，就把sn值的
+                Logger.e("drop", "currentTime - time=" + (currentTime - time))
+                if (UserContans.userInfoHashMap.containsKey(sn)) {
+                    if (!UserContans.userInfoHashMap.get(sn)!!.isSelect) {
+                        isRemove = true
+                        reMoveList.add(i)
+                        AllocationApi.getAllSNSet().remove(dropBean.devicesSN)
+                    }
+                }
+            }
+            if (isRemove) {
+                mHandler.sendEmptyMessage(REMOVE_DATA)
+            } else {
+                mHandler.sendEmptyMessage(UPDATE_HALL)
+            }
+
+        } catch (e: CloneNotSupportedException) {
+
+        }
+    }
+
+    fun showCourseModel() {
+        mCurrentHeartRateClassInfo = UserContans.info
+        if (mCurrentHeartRateClassInfo == null) {
+            return
+        }
+        UserContans.couserTime = mCurrentHeartRateClassInfo.duration
+        tv_course_name.text = mCurrentHeartRateClassInfo.courseName
+        tv_course_leve.text =
+            UserContans.getDifficultyLevel(mCurrentHeartRateClassInfo.difficultyLevel)
+        rl_coure_bottom.visibility = View.VISIBLE
+        if (mCurrentHeartRateClassInfo.targetRateArray == null || mCurrentHeartRateClassInfo.targetRateArray.size == 0) {
+            mCurrentHeartRateClassInfo.addTargetRateArray(
+                CourseDetail(
+                    0,
+                    mCurrentHeartRateClassInfo.duration,
+                    10
+                )
+            )
+            layout_coure_match.visibility = View.GONE
+        } else {
+            layout_coure_match.visibility = View.VISIBLE
+        }
+        coursematch_view.setValue(
+            mCurrentHeartRateClassInfo.duration,
+            mCurrentHeartRateClassInfo.targetRateArray
+        )
+        coursematchpoint_view.setValue(UserContans.info)
+        /* tv_course_time.text =
+             resources.getString(
+                 R.string.course_time_minute,
+                 "" + mCurrentHeartRateClassInfo?.duration / 60
+             )*/
+//        coursematch_view.moveArrow()
+    }
+
+    lateinit var mCurrentHeartRateClassInfo: CourseInfo
+    private var mRemainTime = 0
+    private var mCurrentRangeIndex = 0
+    private var mUnfinishedTime = 0
+
+    var currentCourseDetail: CourseDetail? = null
+    var lastCourseDetail: CourseDetail? = null
+
+
+    inner class CourseDownTimer(var millisInFuture: Long, countDownInterval: Long) :
+        CountDownTimer(millisInFuture, countDownInterval) {
+        override fun onFinish() {
+            LogUtil.e("onFinish=" + ",isPase" + UserContans.isPause + "mRemainTime / 1000" + mRemainTime / 1000)
+
+            endTime = System.currentTimeMillis()
+
+            if (mRemainTime / 1000 == 0) {
+                //把数据清零
+                doHallModel(UserContans.mSnHrMap)
+            }
+
+
+        }
+
+        override fun onTick(millisUntilFinished: Long) {
+            endTime = System.currentTimeMillis()
+            doHallModel(UserContans.mSnHrMap)
+
+            //已经走了的时间
+            var moverTime = 0
+
+            LogUtil.e("millisInFuture=" + millisInFuture / 1000 + " millisUntilFinished=" + millisUntilFinished / 1000 + "mRemainTime/1000=" + mRemainTime / 1000)
+
+            mUnfinishedTime = millisUntilFinished.toInt()
+
+            var remove = UserContans.couserTime + 1 - mRemainTime / 1000
+            /**
+             * 小米盒子最后一秒不会调用
+             */
+            if (currentCourseDetail != null && remove >= currentCourseDetail!!.begin && remove <= currentCourseDetail!!.end) {
+                moverTime = (currentCourseDetail!!.end - remove).toInt()
+                removeview(moverTime)
+            } else {
+                mCurrentHeartRateClassInfo.targetRateArray.forEach {
+                    //LogUtil.e("it.begin=" + it.begin + " it.end=" + it.end + "userTime=" + userTime + ",moverTime=" + moverTime)
+                    if (remove >= it.begin && remove <= it.end) {
+                        //移动的时间
+                        currentCourseDetail = it;
+                        CacheDataUtil.mCurrentRange = it.targetRange
+                        moverTime = (it.end - remove).toInt()
+                        removeview(moverTime)
+                    }
+                }
+            }
+            if (millisUntilFinished / 1000 != 0L) {
+                updateCourseView(millisUntilFinished)
+            }
+
+        }
+
+    }
+
+
+    fun removeview(moveTime: Int) {
+        coursematchpoint_view.setStrTime(TimeUtil.getFormatTimemmss(moveTime * 1000L))
+        //  coursematchpoint_view.moveArrow((mRemainTime / 1000).toLong())
+    }
+
+    private val mDuration = 1000L
+    var mCurrentDownTimer: CourseDownTimer? = null
+    fun reStartDowTimer() {
+        LogUtil.e("mCurrentRangeIndex=" + mCurrentRangeIndex + " size=" + mCurrentHeartRateClassInfo.targetRateArray.size + " ,(mCurrentHeartRateClassInfo.duration * 1000 - mRemainTime) / 1000L=" + (mCurrentHeartRateClassInfo.duration * 1000 - mRemainTime) / 1000L)
+
+        mCurrentDownTimer =
+            CourseDownTimer(
+                (mCurrentHeartRateClassInfo.duration + 1 - (mCurrentHeartRateClassInfo.duration * 1000 - mRemainTime) / 1000L) * 1000L,
+                mDuration
+            )
+        mCurrentDownTimer?.start()
+    }
+
+    //需要考虑暂停时候的逻辑
+    fun startDownTimer() {
+        mCurrentDownTimer =
+            CourseDownTimer(
+                (mCurrentHeartRateClassInfo.duration + 1) * 1000L,
+                mDuration
+            )
+        mCurrentDownTimer?.start()
+        //}
+    }
+
+    var mStateControlTime = 0L
+    fun updateCourseView(millisUntilFinished: Long) {
+        //LogUtil.e("mStateControlTime=" + mStateControlTime + " millisUntilFinished= " + millisUntilFinished + "mRemainTime=" + mRemainTime)
+        if (mStateControlTime == millisUntilFinished / 1000) return
+        mStateControlTime = millisUntilFinished / 1000
+        tv_remain_time.text = TimeUtil.getFormatTime(mRemainTime - 1000L)
+        //coursematchpoint_view.setStrTime(TimeUtil.getFormatTimemmss(millisUntilFinished))
+        coursematchpoint_view.moveArrow((mRemainTime / 1000).toLong())
+        //  tv_range_remain_time.text = TimeUtil.getFormatTimemmss(millisUntilFinished)
+        mRemainTime = (mRemainTime - mDuration).toInt();
+        CacheDataUtil.savemRemainTime(mRemainTime)
+        //结束上报数据
+//        coursematch_view.moveArrow(mRemainTime / 1000)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            back()
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+
+    var mTotalPage = 0
+
+    /**
+     * 轮播点的绘制
+     */
+    private var mDotViews = ArrayList<ImageView>();
+
+    private fun setDotView(isReset: Boolean = true, indexChecked: Int = 0) {
+//        Log.e("test", "isrReset=" + isReset + "indexChecked=" + indexChecked + "dotSize=" + mDotViews.size)
+        if (mTotalPage < 1) {
+            return;
+        }
+        if (isReset) {
+            ll_point.removeAllViews()
+            mDotViews.clear()
+            for (i in 0..(mTotalPage - 1)) {
+                val image = ImageView(this)
+                val params = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                params.topMargin = DisplayUtils.dip2px(this, 8f)
+                if (i == indexChecked) {
+                    image.setImageResource(R.drawable.icon_point_select)
+                } else {
+                    image.setImageResource(R.drawable.icon_point_unselect)
+                }
+                ll_point.addView(image, params)
+                mDotViews.add(image)
+            }
+        } else {
+            for (i in 0..(mTotalPage - 1)) {
+                if (i == indexChecked) {
+                    mDotViews.get(i).setImageResource(R.drawable.icon_point_select)
+                } else {
+                    mDotViews.get(i).setImageResource(R.drawable.icon_point_unselect)
+                }
+            }
+        }
+    }
+
+    var currentPage = 1
+
+    private var mSecondDisposable: Disposable? = null
+    fun timerScroll() {
+        mSecondDisposable = io.reactivex.Observable.interval(10, 10, TimeUnit.SECONDS)
+            .subscribeOn(Schedulers.single())
+            .observeOn(AndroidSchedulers.mainThread()) // 由于interval默认在新线程，所以我们应该切回主线程
+            .subscribe(Consumer {
+                if (mTotalPage == currentPage) {
+                    currentPage = 1
+                } else {
+                    currentPage++
+                }
+            })
+    }
+
+}

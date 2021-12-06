@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/pk_main_bg"
+    android:orientation="vertical"
+    tools:context=".wu.newversion.activity.NCourseActivity">
+
+    <include
+        android:id="@+id/layout_top"
+        layout="@layout/ninclude_title"/>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <include
+            layout="@layout/activity_pk_content"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"/>
+
+        <LinearLayout
+            android:id="@+id/ll_point"
+            android:layout_width="@dimen/dp30"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="@dimen/dp5"
+            android:layout_marginRight="@dimen/dp15"
+            android:background="@drawable/shape_btn_unselected_bg"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/dp10"/>
+
+    </LinearLayout>
+
+
+    <include layout="@layout/include_course_bottom" />
+</LinearLayout>
