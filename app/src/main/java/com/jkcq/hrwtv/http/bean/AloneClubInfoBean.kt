@@ -16,4 +16,7 @@ data class AloneClubInfoBean(
     val id: String,
     val nickname: String,
     val token:String
+
+
+
 )

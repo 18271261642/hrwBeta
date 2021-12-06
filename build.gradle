@@ -39,7 +39,7 @@ ext{
     retrofit_version='2.5.0'
     rxjava_version='2.2.7'
     rxandroid_version='2.1.1'
-    gson_version='2.2.1'
+    gson_version='2.8.7'
 }
 
 def getSdkDirFromLocalProperties() {

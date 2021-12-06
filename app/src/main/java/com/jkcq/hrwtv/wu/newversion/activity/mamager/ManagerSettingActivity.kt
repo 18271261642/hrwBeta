@@ -31,8 +31,12 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_manager_main_layout.*
 import java.util.*
 
+
+//设置页面
 class ManagerSettingActivity : AppCompatActivity(), ManagerMainView,
     View.OnClickListener {
+
+
     var mToken: String by Preference(Preference.token, "")
     var mbrandName: String by Preference(Preference.brandName, "")
     var mbrandId: String by Preference(Preference.brandId, "")
@@ -243,7 +247,7 @@ class ManagerSettingActivity : AppCompatActivity(), ManagerMainView,
         val currentCode = AppUtils.getAppVersionCode()
         if (versionBean.appVersionCode == currentCode) {
 
-            var str = "是否更新到最新版本固件"+  versionBean.appVersionName + "?\n" + getString(
+            var str = "是否更新到最新版本固件" + versionBean.appVersionName + "?\n" + getString(
                 R.string.app_version,
                 AppUtils.getAppVersionName()
             )

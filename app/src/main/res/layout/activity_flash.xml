@@ -153,7 +153,7 @@
                 android:layout_height="wrap_content"
                 android:layout_centerHorizontal="true"
                 android:paddingTop="@dimen/dp10"
-                android:src="@mipmap/bg_course"/>
+                android:src="@mipmap/bg_course" />
 
             <TextView
                 android:layout_width="wrap_content"

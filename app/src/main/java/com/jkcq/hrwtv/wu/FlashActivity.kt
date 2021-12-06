@@ -46,6 +46,7 @@ import kotlinx.android.synthetic.main.activity_flash.tv_name
 import kotlinx.android.synthetic.main.activity_flash.tv_time
 import kotlinx.android.synthetic.main.activity_ncourse.*
 import kotlinx.android.synthetic.main.ninclude_title.*
+import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -297,10 +298,15 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
         }
 
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            //返回一个MsgService对象
-            myMqttService = (service as MyMqttService.MyMqttServiceBinder).collectionServices
-            myMqttService?.setTask(false)
-            //  myMqttService?.setOnHeartRateListener(heartRateListener)
+            try {
+                //返回一个MsgService对象
+                myMqttService = (service as MyMqttService.MyMqttServiceBinder).collectionServices
+                myMqttService?.setTask(false)
+                //  myMqttService?.setOnHeartRateListener(heartRateListener)
+            }catch (e : Exception){
+                e.printStackTrace()
+            }
+
         }
     }
 
