@@ -795,8 +795,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 override fun onSuccess(t: BaseResponse<Boolean>?) {
                     if (t != null) {
                         Log.e(tags,"---是否成功="+t.data)
-                        if(t.data == true && isFinish)
+                        if(t.data == true && isFinish){
+                            UserContans.markTagsMap.clear()
                             finish()
+                        }
                     }
                 }
 
