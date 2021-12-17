@@ -1,7 +1,9 @@
 package com.jkcq.hrwtv.wu.newversion.activity
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.support.annotation.RequiresApi
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.GridLayoutManager
 import android.util.Log
@@ -10,9 +12,13 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import com.blankj.utilcode.util.ToastUtils
+import com.google.gson.Gson
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.configure.Constant
 import com.jkcq.hrwtv.heartrate.bean.UserBean
+import com.jkcq.hrwtv.http.RetrofitHelper
+import com.jkcq.hrwtv.http.bean.BaseResponse
+import com.jkcq.hrwtv.http.widget.BaseObserver
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.util.CacheDataUtil
 import com.jkcq.hrwtv.util.DisplayUtils
@@ -22,16 +28,23 @@ import com.jkcq.hrwtv.wu.newversion.adapter.UserSelectAdapter.Isecelt
 import com.jkcq.hrwtv.wu.newversion.adapter.UserSelectItemDecoration
 import com.jkcq.hrwtv.wu.newversion.bean.SelectUserBean
 import com.jkcq.hrwtv.wu.obsever.AddUseObservable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_flash.*
 import kotlinx.android.synthetic.main.include_course_select_title.*
 import kotlinx.android.synthetic.main.layout_course_select.*
+import okhttp3.MediaType
+import okhttp3.RequestBody
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 //PK模式选择课程后选择学员页面
 class UserSelectActivity : AppCompatActivity(), Observer {
+
+    private val tags = "UserSelectActivity"
 
     var currentMode = Constant.MODE_COURSE
 
@@ -47,6 +60,9 @@ class UserSelectActivity : AppCompatActivity(), Observer {
     private var mCourseDatas = arrayListOf<SelectUserBean>()
     lateinit var mAdapter: UserSelectAdapter
 
+    //是否全选
+    var isSelect = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +72,8 @@ class UserSelectActivity : AppCompatActivity(), Observer {
     }
 
     fun initView() {
+
+
         val layoutManager = GridLayoutManager(this, 4)
         tv_recyclerview.layoutManager = layoutManager
         mAdapter = UserSelectAdapter(this, mCourseDatas)
@@ -67,13 +85,13 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
             override fun cancleCheackBox(isSelect: Boolean, position: Int) {
                 mCourseDatas[position].isSelect = isSelect
-                mALlData!!.get(mCourseDatas.get(position).sn)!!.isSelect = isSelect
+                mALlData.get(mCourseDatas.get(position).sn)!!.isSelect = isSelect
                 if (isSelect) {
                     mALlData!!.get(mCourseDatas.get(position).sn)!!.currentMod = currentMode
                     mCourseDatas.get(position).currentMod = currentMode
                 } else {
                     mCourseDatas.get(position).currentMod = Constant.MODE_ALL
-                    mALlData!!.get(mCourseDatas.get(position).sn)!!.currentMod = Constant.MODE_ALL
+                    mALlData.get(mCourseDatas.get(position).sn)!!.currentMod = Constant.MODE_ALL
                 }
 
                 calNumberCount()
@@ -103,20 +121,61 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         return 0
     }
 
+
+    override fun onResume() {
+        super.onResume()
+        isSelect = isSelectAll()
+        allSelectStatusTv.text = if (isSelectAll())  "反选"  else "全选"
+    }
+
+
+
     fun initEvent() {
         fl_back.setOnClickListener {
 
             finish()
         }
 
+        courseAllSelectLayout.setOnClickListener {
+            if(mCourseDatas.isEmpty()){
+                ToastUtils.showShort("请选择上课用户")
+                return@setOnClickListener
+            }
+
+
+            if(isSelect){
+                allSelectStatusTv.text = "全选"
+                isSelect = false
+                for(index in 0 until mAdapter.itemCount){
+                    if(mCourseDatas[index].isSelect){
+                        mCourseDatas[index].isSelect = false
+                    }
+                }
+
+            }else{
+                allSelectStatusTv.text = "反选"
+                isSelect = true
+                for(index in 0 until mAdapter.itemCount){
+                    if(!mCourseDatas[index].isSelect){
+                        mCourseDatas[index].isSelect = true
+                    }
+                }
+            }
+
+            mAdapter.notifyDataSetChanged()
+            calNumberCount()
+        }
+
+
+
         fl_sure.setOnClickListener {
             var seletCount = 0
             var redCount = 0;
             var blueCount = 0;
             mALlData.forEach {
-                if (it.value!!.isSelect && it.value!!.currentMod == Constant.MODE_PK_BLUE) {
+                if (it.value.isSelect && it.value.currentMod == Constant.MODE_PK_BLUE) {
                     blueCount++
-                } else if (it.value!!.isSelect && it.value!!.currentMod == Constant.MODE_PK_RED) {
+                } else if (it.value.isSelect && it.value.currentMod == Constant.MODE_PK_RED) {
                     redCount++
                 }
                 if (it.value!!.isSelect) {
@@ -124,13 +183,13 @@ class UserSelectActivity : AppCompatActivity(), Observer {
                 }
             }
             when (currentMode) {
-                Constant.MODE_COURSE -> {
+                Constant.MODE_COURSE -> {    //课程模式用户选择
                     if (seletCount == 0) {
                         ToastUtils.showShort("请选择上课用户")
                         return@setOnClickListener
                     }
                 }
-                else -> {
+                else -> {       //PK模式用户选择
                     if (blueCount == 0 || redCount == 0) {
                         ToastUtils.showShort("请选择PK用户")
                         return@setOnClickListener
@@ -155,26 +214,29 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
             CacheDataUtil.saveUserMap()
             if (firstCome) {
-                when (currentMode) {
-                    Constant.MODE_COURSE -> {
-                        startActivity(
-                            Intent(
-                                this@UserSelectActivity,
-                                NCourseActivity::class.java
-                            )
-                        )
-                    }
-                    else -> {
-                        startActivity(
-                            Intent(
-                                this@UserSelectActivity,
-                                NPkActivity::class.java
-                            )
-                        )
-                    }
-                }
+
+                markSnListData()
+
+//                when (currentMode) {
+//                    Constant.MODE_COURSE -> {    //选择完成后去课程模式页面
+//                        startActivity(
+//                            Intent(
+//                                this@UserSelectActivity,
+//                                NCourseActivity::class.java
+//                            )
+//                        )
+//                    }
+//                    else -> {           //选择完成后去PK页面
+//                        startActivity(
+//                            Intent(
+//                                this@UserSelectActivity,
+//                                NPkActivity::class.java
+//                            )
+//                        )
+//                    }
+//                }
             }
-            finish()
+          //  finish()
         }
     }
 
@@ -193,6 +255,11 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         AddUseObservable.getInstance().addObserver(this)
         firstCome = intent.getBooleanExtra("firstCome", false);
         currentMode = intent.getIntExtra("currentMode", Constant.MODE_COURSE);
+
+
+        //全选按钮上课有全选，PK没有全选
+        courseAllSelectLayout.visibility = if(currentMode == Constant.MODE_COURSE) View.VISIBLE else View.INVISIBLE
+
         getAllData()
 
         fl_sure.nextFocusDownId = R.id.fl_sure
@@ -465,5 +532,96 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         Log.e("AddUseObservable", "addUserNotify3")
         getUsers()
     }
+
+
+    //判断是否是全选状态，有一个未被选中为非全选
+    private fun isSelectAll(): Boolean {
+        var isAllSelect = false
+        if(mCourseDatas.isEmpty())
+            isAllSelect =  false
+
+        for(index in 0 until mCourseDatas.size ){
+            isAllSelect =  mCourseDatas[index].isSelect
+        }
+        return isAllSelect
+    }
+
+
+
+
+
+    private fun markSnListData(){
+
+        var para = HashMap<String,List<String>>()
+
+        //遍历集合，得到已经选择的用户
+        var selectList = arrayListOf<String>()
+        var unSelectList = emptyList<String>()
+
+        mALlData.forEach { (t: String, u: SelectUserBean) ->
+            if(mALlData.get(t)?.isSelect == true){
+                selectList.add(t)
+            }
+        }
+
+        para["markList"] = selectList
+        para["unmarkList"] = unSelectList
+
+        Log.e(tags,"------c参数="+para.toString())
+        val requestBody: RequestBody =
+            RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
+        RetrofitHelper.service.markSnActiveTags(requestBody)
+            .subscribeOn(Schedulers.io())
+            .subscribeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : BaseObserver<BaseResponse<Boolean>>(){
+                override fun onSuccess(t: BaseResponse<Boolean>?) {
+                    if (t != null) {
+                        Log.e(tags,"---是否成功="+t.data)
+                        t.data?.let { t.msg?.let { it1 -> intentActivity(it, it1,selectList) } }
+
+
+                    }
+                }
+
+                override fun dealError(msg: String?) {
+                    super.dealError(msg)
+                }
+            })
+
+    }
+
+    private fun intentActivity(isTag: Boolean,msg : String,markList : List<String>){
+        if(!isTag){
+            ToastUtils.showShort(msg)
+            return
+        }
+
+        //打标签成功后把已经打完标签的存入临时集合，大厅模式不上线
+        markList.forEach {
+            UserContans.markTagsMap[it.toString()] = -1
+        }
+
+        when (currentMode) {
+            Constant.MODE_COURSE -> {    //选择完成后去课程模式页面
+                startActivity(
+                    Intent(
+                        this@UserSelectActivity,
+                        NCourseActivity::class.java
+                    )
+                )
+            }
+            else -> {           //选择完成后去PK页面
+                startActivity(
+                    Intent(
+                        this@UserSelectActivity,
+                        NPkActivity::class.java
+                    )
+                )
+            }
+        }
+
+        finish()
+    }
+
 
 }

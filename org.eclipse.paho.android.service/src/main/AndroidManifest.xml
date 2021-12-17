@@ -1,6 +1,7 @@
-<manifest
+<manifest xmlns:tools="http://schemas.android.com/tools"
     package="org.eclipse.paho.android.service">
 
+   <!-- <uses-permission name="android.permission.ACCESS_NETWORK_STATE" />-->
     <application>
     </application>
 

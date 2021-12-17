@@ -88,7 +88,9 @@ public class Constant {
 
     //掉线删除时间
     public static final int REFRESH_RATE = 1;
-    public static final int DROP_TIME = 120 * 1000;
+    //掉线刷新时间
+   // public static final int DROP_TIME = 120 * 1000;
+    public static final int DROP_TIME = 20 * 1000;
     public static final int DROP_wall_TIME = 2 * 60 * 1000;
     //提前打卡时间
     public static final int DELAY_TIME = 10 * 60 * 1000;

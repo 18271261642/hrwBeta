@@ -26,6 +26,12 @@ public class UserContans {
     volatile public static ConcurrentHashMap<String, Integer> mSnEnergyMap = new ConcurrentHashMap<>();
 
 
+
+
+    //已经打标签的sn码集合，已经打标签的不能在大厅模式显示，课程和PK模式下打标签
+    public volatile static ConcurrentHashMap<String,Integer> markTagsMap = new ConcurrentHashMap<>();
+
+
     volatile public static ConcurrentHashMap<String, SecondHeartRateBean> secondHeartRateBeanHashMap = new ConcurrentHashMap<>();
 
     volatile public static ConcurrentHashMap<String, SecondHeartRateBean> sendSecondMap = new ConcurrentHashMap<>();

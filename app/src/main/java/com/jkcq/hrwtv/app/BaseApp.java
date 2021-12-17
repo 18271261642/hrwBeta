@@ -1,7 +1,11 @@
 package com.jkcq.hrwtv.app;
 
 import android.app.Application;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.multidex.MultiDex;
 
 import com.jkcq.hrwtv.BuildConfig;
@@ -9,6 +13,7 @@ import com.jkcq.hrwtv.eventBean.EventConstant;
 import com.jkcq.hrwtv.heartrate.bean.ShowBean;
 import com.jkcq.hrwtv.http.bean.ClubInfo;
 import com.jkcq.hrwtv.http.bean.CourseUserInfo;
+import com.jkcq.hrwtv.service.OperateUserSnService;
 import com.jkcq.hrwtv.util.ACache;
 import com.jkcq.hrwtv.util.CacheDataUtil;
 import com.jkcq.hrwtv.util.DeviceUtil;
@@ -110,6 +115,9 @@ public class BaseApp extends Application {
 
     private void initApp() {
         setInstance();
+
+        Intent intent = new Intent(this, OperateUserSnService.class);
+        bindService(intent,serviceConnection,Context.BIND_AUTO_CREATE);
     }
 
     private void initBaidu() {
@@ -127,5 +135,17 @@ public class BaseApp extends Application {
 //        PlatformConfig.setQQZone("1105670437", "HBlBoy5XSs7XZIR4");
     }
 
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
 
 }

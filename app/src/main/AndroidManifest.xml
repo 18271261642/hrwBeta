@@ -90,6 +90,8 @@
             android:name=".wu.CourseUpdateMqttService"
             android:enabled="true"
             android:exported="true" />
+
+        <service android:name=".service.OperateUserSnService"/>
     </application>
 
 </manifest>

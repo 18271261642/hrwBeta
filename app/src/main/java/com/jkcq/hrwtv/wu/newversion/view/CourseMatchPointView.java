@@ -108,6 +108,7 @@ public class CourseMatchPointView extends View {
             //绘制path路径
             canvas.drawPath(mpath, mLinePaint);
         } catch (Exception e) {
+            e.printStackTrace();
             Log.e("drawPointerView", "drawPointerView---------------- left=" + e.toString());
            // Log.e("Exception", e.toString());
         }

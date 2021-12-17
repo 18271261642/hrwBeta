@@ -7,7 +7,9 @@ import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.util.CacheDataUtil
 import com.jkcq.hrwtv.wu.newversion.adapter.HallAdapter
+import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.collections.ArrayList
 
 class CourseHeartResultView : BaseHeartResultView {
 
@@ -46,6 +48,9 @@ class CourseHeartResultView : BaseHeartResultView {
 //            mAdapter?.notifyItemChanged(i)
 //        }
         drawParticle()
+
+       // mShowHeartRateData.sortBy { it.joinTime}
+
         mAdapter?.notifyDataSetChanged()
         mAdapter?.compareToMove(0)
     }

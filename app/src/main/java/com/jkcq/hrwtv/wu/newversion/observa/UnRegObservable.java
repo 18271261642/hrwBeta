@@ -16,7 +16,7 @@ public class UnRegObservable extends Observable {
         super.setChanged();
     }
 
-    private UnRegObservable() {
+    public UnRegObservable() {
         super();
     }
 

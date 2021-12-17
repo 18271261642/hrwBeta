@@ -228,7 +228,7 @@
     <dimen name="ncard4_height">120dp</dimen>
 
     <dimen name="sp6">6sp</dimen>
-    <dimen name="ncard1_content_with">435px</dimen>
+    <dimen name="ncard1_content_with">450px</dimen>
     <dimen name="ncard1_content_height">345px</dimen>
     <dimen name="card1_dot">45px</dimen>
     <dimen name="card1_layout_left_width">75px</dimen>

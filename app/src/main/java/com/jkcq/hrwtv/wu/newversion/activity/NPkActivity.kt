@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.base.mvp.BaseMVPActivity
@@ -22,9 +23,12 @@ import com.jkcq.hrwtv.heartrate.bean.SecondHeartRateBean
 import com.jkcq.hrwtv.heartrate.bean.UserBean
 import com.jkcq.hrwtv.heartrate.model.MainActivityView
 import com.jkcq.hrwtv.heartrate.presenter.MainActivityPresenter
+import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.*
+import com.jkcq.hrwtv.http.widget.BaseObserver
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.ui.view.DialogYesOrNo
+import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.manager.Preference
 import com.jkcq.hrwtv.wu.newversion.view.PKItemView
@@ -39,6 +43,8 @@ import kotlinx.android.synthetic.main.include_course_bottom.*
 import kotlinx.android.synthetic.main.item_user_card.view.*
 import kotlinx.android.synthetic.main.layout_course_select.*
 import kotlinx.android.synthetic.main.ninclude_title.*
+import okhttp3.MediaType
+import okhttp3.RequestBody
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -50,6 +56,11 @@ import kotlin.collections.ArrayList
  * PK模式页面
  */
 class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), MainActivityView {
+
+
+    private val tags = "NPkActivity"
+
+
     var mToken: String by Preference(Preference.token, "")
     var mbrandName: String by Preference(Preference.brandName, "")
     var mbrandId: String by Preference(Preference.brandId, "")
@@ -63,6 +74,10 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
     var redViewlist = ConcurrentHashMap<Int, PKItemView>()
     var blueViewList = ConcurrentHashMap<Int, PKItemView>()
+
+
+    //显示并自动结束的dialog
+    private var autoDialogView : ShowEmptyDialog?=null
 
 
     //  private var myMqttService: BaseMqttservice? = null
@@ -150,10 +165,10 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     //课程模式
     override fun uploadAllDataSuccess() {
 
-        finish()
+
         //跳转到结果页面
         startActivity(Intent(this, PkResultActivity::class.java))
-
+        finish()
     }
 
 
@@ -207,7 +222,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 mCurrentDownTimer?.cancel()
                 upgradeCourseData()
             }
-        }, "确认结束课程？").show()
+        }, "确认结束PK？").show()
     }
 
     fun back() {
@@ -230,6 +245,9 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             endTime = System.currentTimeMillis()
         }
         AllData = true;
+
+        //取消标签
+        markSnListData()
 
         mActPresenter.postPk(
             mRedDataShowBeans, mBlueDataShowBeans,
@@ -787,11 +805,15 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     var currentCourseDetail: CourseDetail? = null
     var lastCourseDetail: CourseDetail? = null
 
+    val instance by lazy { this } //这里使用了委托，表示只有使用到instance才会执行该段代码
+
 
     inner class CourseDownTimer(var millisInFuture: Long, countDownInterval: Long) :
         CountDownTimer(millisInFuture, countDownInterval) {
+
+
         override fun onFinish() {
-            LogUtil.e("onFinish=" + ",isPase" + UserContans.isPause + "mRemainTime / 1000" + mRemainTime / 1000)
+            LogUtil.e(tags,"--onFinish=" + ",isPase" + UserContans.isPause + "mRemainTime / 1000" + mRemainTime / 1000)
 
             endTime = System.currentTimeMillis()
 
@@ -800,7 +822,17 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 doHallModel(UserContans.mSnHrMap)
             }
 
-
+            autoDialogView = ShowEmptyDialog(instance)
+            autoDialogView!!.show()
+            autoDialogView!!.setShowTime(3 * 1000)
+            autoDialogView!!.setContentTvTxt("挑战结束")
+            autoDialogView!!.setOnEmptyDialogListener {
+                autoDialogView!!.dismiss()
+                //完成后自动结束课程
+                UserContans.isPause = true;
+                mCurrentDownTimer?.cancel()
+                upgradeCourseData()
+            }
         }
 
         override fun onTick(millisUntilFinished: Long) {
@@ -810,11 +842,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             //已经走了的时间
             var moverTime = 0
 
-            LogUtil.e("millisInFuture=" + millisInFuture / 1000 + " millisUntilFinished=" + millisUntilFinished / 1000 + "mRemainTime/1000=" + mRemainTime / 1000)
+            LogUtil.e(tags,"millisInFuture=" + millisInFuture / 1000 + " millisUntilFinished=" + millisUntilFinished / 1000 + "mRemainTime/1000=" + mRemainTime / 1000)
 
             mUnfinishedTime = millisUntilFinished.toInt()
 
-            var remove = UserContans.couserTime + 1 - mRemainTime / 1000
+            var remove = UserContans.couserTime  - mRemainTime / 1000
             /**
              * 小米盒子最后一秒不会调用
              */
@@ -854,17 +886,20 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
         mCurrentDownTimer =
             CourseDownTimer(
-                (mCurrentHeartRateClassInfo.duration + 1 - (mCurrentHeartRateClassInfo.duration * 1000 - mRemainTime) / 1000L) * 1000L,
+                (mCurrentHeartRateClassInfo.duration  - (mCurrentHeartRateClassInfo.duration * 1000 - mRemainTime) / 1000L) * 1000L,
                 mDuration
             )
+
+
         mCurrentDownTimer?.start()
+
     }
 
     //需要考虑暂停时候的逻辑
     fun startDownTimer() {
         mCurrentDownTimer =
             CourseDownTimer(
-                (mCurrentHeartRateClassInfo.duration + 1) * 1000L,
+                    (mCurrentHeartRateClassInfo.duration ) * 1000L,
                 mDuration
             )
         mCurrentDownTimer?.start()
@@ -949,6 +984,59 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                     currentPage++
                 }
             })
+    }
+
+
+
+    //取消sn标签
+    private fun markSnListData(){
+
+        val para = HashMap<String,List<String>>()
+
+        //遍历集合，得到已经选择的用户
+        val selectList = emptyList<String>()
+        val unSelectList = arrayListOf<String>()
+
+
+
+        Log.e(tags,"--------真实的="+Gson().toJson(mRedDataShowBeans)+" "+Gson().toJson(mBlueDataShowBeans))
+
+
+
+        for(index in 0 until mRedDataShowBeans.size ){
+            Log.e(tags,"----红队="+mRedDataShowBeans[index].devicesSN)
+           unSelectList.add(mRedDataShowBeans[index].devicesSN)
+        }
+
+        for(index in 0 until mBlueDataShowBeans.size){
+            unSelectList.add(mBlueDataShowBeans[index].devicesSN)
+            Log.e(tags,"---蓝队队="+mBlueDataShowBeans[index].devicesSN)
+        }
+
+        para["markList"] = selectList
+        para["unmarkList"] = unSelectList
+
+        Log.e(tags,"------c参数="+para.toString())
+        val requestBody: RequestBody =
+            RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
+        RetrofitHelper.service.markSnActiveTags(requestBody)
+            .subscribeOn(Schedulers.io())
+            .subscribeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : BaseObserver<BaseResponse<Boolean>>(){
+                override fun onSuccess(t: BaseResponse<Boolean>?) {
+                    if (t != null) {
+                        Log.e(tags,"---是否成功="+t.data)
+                        if(t.data == true){
+                            UserContans.markTagsMap.clear()
+                        }
+                    }
+                }
+
+                override fun dealError(msg: String?) {
+                    super.dealError(msg)
+                }
+            })
+
     }
 
 }

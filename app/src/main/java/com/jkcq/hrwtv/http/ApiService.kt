@@ -7,6 +7,7 @@ import com.jkcq.hrwtv.http.bean.BaseResponse
 import io.reactivex.Observable
 import okhttp3.RequestBody
 import retrofit2.http.*
+import java.util.*
 
 
 /**
@@ -64,5 +65,20 @@ interface ApiService {
      */
     @GET("/api/heartratewall/device-version/latest-version")
     fun getVersionInfo(@Query("deviceType") deviceTypeId: String): Observable<BaseResponse<VersionInfo>>
+
+    /**
+     * 标记或者取消标记
+     * /api/heartratewall/exercise-active-tags
+     */
+    @POST("/api/heartratewall/exercise-active-tags")
+    fun markSnActiveTags(@Body body: RequestBody) : Observable<BaseResponse<Boolean>>
+
+
+    /**
+     * 查询正在活动的标签
+     * /api/heartratewall/exercise-active-tags
+     */
+    @GET("/api/heartratewall/exercise-active-tags")
+    fun getActiveMarkSnTags() : Observable<BaseResponse<Object>>
 
 }

@@ -9,7 +9,7 @@
 
     <android.support.constraint.ConstraintLayout
         android:id="@+id/l_layout"
-        android:layout_width="@dimen/ncard1_content_with"
+        android:layout_width="450dp"
         android:layout_height="@dimen/ncard1_content_height"
         android:layout_centerInParent="true"
         android:paddingLeft="@dimen/dp8"
@@ -163,7 +163,7 @@
                     style="@style/CardValueStartStyle"
                     android:layout_marginTop="@dimen/dp5"
                     android:textSize="@dimen/sp36"
-                    tools:text="115" />
+                    tools:text="1158" />
 
                 <ImageView
                     android:id="@+id/iv_cal"

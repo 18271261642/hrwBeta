@@ -352,7 +352,8 @@ public class MqttService extends Service implements MqttTraceHandler {
    */
   public void close(String clientHandle) {
     MqttConnection client = getConnection(clientHandle);
-    client.close();
+    if(client != null)
+     client.close();
   }
 
   /**
@@ -585,7 +586,8 @@ public class MqttService extends Service implements MqttTraceHandler {
   private MqttConnection getConnection(String clientHandle) {
     MqttConnection client = connections.get(clientHandle);
     if (client == null) {
-      throw new IllegalArgumentException("Invalid ClientHandle");
+        return null;
+      //throw new IllegalArgumentException("Invalid ClientHandle");
     }
     return client;
   }
@@ -838,7 +840,7 @@ public class MqttService extends Service implements MqttTraceHandler {
 	 */
 	public boolean isOnline() {
 		ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-		NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+		@SuppressLint("MissingPermission") NetworkInfo networkInfo = cm.getActiveNetworkInfo();
       //noinspection RedundantIfStatement
       if (networkInfo != null
               && networkInfo.isAvailable()

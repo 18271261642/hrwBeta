@@ -2,9 +2,11 @@ package com.jkcq.hrwtv.wu.newversion.activity
 
 import android.annotation.SuppressLint
 import android.content.*
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.support.annotation.RequiresApi
 import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
@@ -41,6 +43,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 //大厅模式页面
 class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
+
+    private val tags = "NHallActivity"
+
 
     private var intervalTime = 0
     var reMoveList = mutableListOf<Int>()
@@ -79,9 +84,11 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
                 REMOVE_DATA -> {
                     removemAddList.clear()
                     reMoveList.forEach {
-                        if(mDataShowBeans.size>it)
-                           removemAddList.add(mDataShowBeans[it])
-                        heartresult_view.removeItem(it)
+                        if(mDataShowBeans.size>it){
+                            removemAddList.add(mDataShowBeans[it])
+                            heartresult_view.removeItem(it)
+                        }
+
                     }
                     //掉线需要上传数据
                     mActPresenter.postHwall(removemAddList, "0")
@@ -222,6 +229,7 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     /**
      * 更新标题栏的时间显示
      */
+    @SuppressLint("SetTextI18n")
     private fun updateTime() {
         val calendar = Calendar.getInstance()
         tv_time.setText(
@@ -273,6 +281,10 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     private fun doHallModel(
         sources: ConcurrentHashMap<String, Int>
     ) {
+
+        Log.e(tags,"-----source="+sources.toString())
+
+
         //查询用户信息
         doCommonHRTask(sources)
         dataSize = mDataShowBeans.size
@@ -428,33 +440,61 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     var sn = ""
     var hrValue = 0
 
+
+    private var tmpResultSource : ConcurrentHashMap<String,Int> ?= null
+
+
+    @RequiresApi(Build.VERSION_CODES.N)
     @SuppressLint("LongLogTag")
     private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
 
 
-        sources.forEach {
+        Log.e(tags,"-----000source="+sources.toString())
+
+        tmpResultSource = ConcurrentHashMap()
+
+        tmpResultSource = sources
+
+        var markList = UserContans.markTagsMap;
+        if(!markList.isEmpty()){
+            tmpResultSource!!.forEach { (t: String, u: Int) ->
+                if(markList[t] == -1){
+                    tmpResultSource!!.remove(t)
+
+                }
+            }
+        }
+        Log.e(tags,"-----处理后的source="+sources.toString()+"\n"+tmpResultSource.toString())
+
+
+
+        tmpResultSource!!.forEach {
             Logger.e("doCommonHRTask", sn)
             sn = it.key
             hrValue = it.value
+            Log.e(tags,"------查询用户信息="+UserContans.userInfoHashMap.toString())
+
             if (!UserContans.userInfoHashMap.containsKey(sn)) {
                 if (!UserContans.mCacheMap.containsKey(sn)) {
                     //1.查询用户信息
                 }
             } else {
-                val secondHeartRateBean: SecondHeartRateBean =
-                    if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
-                        UserContans.secondHeartRateBeanHashMap.get(sn)!!
-                    } else {
-                        SecondHeartRateBean()
-                    }
-                //接收到的所有心率数据
-                secondHeartRateBean.devicesSN = sn
-                secondHeartRateBean.heartList.add(hrValue)
-                secondHeartRateBean.heart = hrValue
-                secondHeartRateBean.isTask = false
-                //接收到的数据的时间戳
-                secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
-                UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
+                if(hrValue != -1){
+                    val secondHeartRateBean: SecondHeartRateBean =
+                        if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
+                            UserContans.secondHeartRateBeanHashMap.get(sn)!!
+                        } else {
+                            SecondHeartRateBean()
+                        }
+                    //接收到的所有心率数据
+                    secondHeartRateBean.devicesSN = sn
+                    secondHeartRateBean.heartList.add(hrValue)
+                    secondHeartRateBean.heart = hrValue
+                    secondHeartRateBean.isTask = false
+                    //接收到的数据的时间戳
+                    secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
+                    UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
+                }
             }
         }
         //这里需要
@@ -482,12 +522,14 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
             //接收数据的时间
             reMoveList.clear()
             isRemove = false
+            if(mDataShowBeans.size==0)
+                return
             for (i in 0 until mDataShowBeans.size) {
                 val dropBean = mDataShowBeans[i] ?: return;
                 //已经掉线，直接移除
                 sn = dropBean.devicesSN
                 time = UserContans.mSnHrTime[sn]!!
-                Logger.e("drop", "currentTime - time=" + (currentTime - time))
+                Logger.e("drop", "currentTime - time=" + (currentTime - time)+" time="+time)
 
                 if (currentTime - time >= Constant.DROP_TIME) {
                     if (UserContans.userInfoHashMap.containsKey(dropBean.devicesSN)) {
@@ -524,3 +566,4 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     }
 
 }
+

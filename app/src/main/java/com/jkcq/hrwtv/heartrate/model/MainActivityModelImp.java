@@ -21,8 +21,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.logging.Handler;
 
+import io.reactivex.Scheduler;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.MediaType;
@@ -287,6 +292,5 @@ public class MainActivityModelImp extends BasePresenterModel<MainActivityView> i
 
         postHeartRateData(sumList, heartRateCourseId, "", modeType, endTime);
     }
-
 
 }

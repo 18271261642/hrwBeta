@@ -185,7 +185,8 @@ public class MyMqttService extends BaseMqttservice {
             try {
                 mMqttConnectOptions.setWill(topic, message.getBytes(), qos.intValue(), retained.booleanValue());
             } catch (Exception e) {
-                LogUtil.i(TAG, "Exception Occured" + e.toString());
+                e.printStackTrace();
+                LogUtil.e(TAG, "Exception Occured" + e.toString());
                 doConnect = false;
                 iMqttActionListener.onFailure(null, e);
             }

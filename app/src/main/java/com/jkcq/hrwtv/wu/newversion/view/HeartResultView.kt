@@ -53,9 +53,13 @@ class HeartResultView : BaseHeartResultView {
     }
 
     fun removeItem(position: Int) {
-        mShowHeartRateData.removeAt(position)
-        mAdapter?.notifyItemRemoved(position)
-
+        try {
+            if(position<mShowHeartRateData.size)
+              mShowHeartRateData.removeAt(position)
+            mAdapter?.notifyItemRemoved(position)
+        }catch (e : Exception){
+            e.printStackTrace()
+        }
     }
 
     fun removeItem(data: ArrayList<Int>) {

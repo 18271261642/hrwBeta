@@ -12,7 +12,11 @@ import com.jkcq.hrwtv.util.SharedPreferencesUtil;
 import com.jkcq.hrwtv.http.RetrofitHelper;
 import com.jkcq.hrwtv.http.bean.BaseResponse;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
@@ -35,7 +39,6 @@ public class FlashPresenter extends BasePresenter<FlashContract.FlashView> imple
 
     @Override
     public void getClubInfo() {
-
         HashMap<String, String> para = new HashMap<>();
         para.put("mac", DeviceUtil.getMac(BaseApp.getApp()));
         para.put("type", "0");

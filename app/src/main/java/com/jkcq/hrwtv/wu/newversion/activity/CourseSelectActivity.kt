@@ -64,6 +64,7 @@ class CourseSelectActivity : AppCompatActivity() {
         layout_blue.visibility = View.INVISIBLE
         tv_title.visibility = View.GONE
         fl_sure.visibility = View.INVISIBLE
+        courseAllSelectLayout.visibility = View.INVISIBLE
         tv_number_count.visibility = View.GONE
         tv_name.text = "请选择课程"
         val layoutManager = GridLayoutManager(this, 3)

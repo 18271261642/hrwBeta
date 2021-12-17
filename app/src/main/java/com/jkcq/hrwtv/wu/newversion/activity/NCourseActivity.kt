@@ -11,6 +11,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.configure.Constant
@@ -19,23 +20,32 @@ import com.jkcq.hrwtv.heartrate.bean.SecondHeartRateBean
 import com.jkcq.hrwtv.heartrate.bean.UserBean
 import com.jkcq.hrwtv.heartrate.model.MainActivityView
 import com.jkcq.hrwtv.heartrate.presenter.MainActivityPresenter
+import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.*
+import com.jkcq.hrwtv.http.widget.BaseObserver
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.ui.view.DialogYesOrNo
+import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.newversion.view.CourseHeartResultView
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_ncourse.*
 import kotlinx.android.synthetic.main.include_course_bottom.*
 import kotlinx.android.synthetic.main.ninclude_title.*
+import okhttp3.MediaType
+import okhttp3.RequestBody
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.collections.ArrayList
 
-
+//课程模式开始页面
 class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
+
+    private val tags = "NCourseActivity"
 
     private var intervalTime = 0
     var reMoveList = ArrayList<String>()
@@ -53,6 +63,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     private var isAddItem = false;
 
     private val secondMap = ConcurrentHashMap<String, SecondHeartRateBean>()
+
+
+
+
 
     //    var dataShowBeans = ArrayList<DevicesDataShowBean>()
     var mDataShowBeans = CopyOnWriteArrayList<DevicesDataShowBean>();
@@ -165,7 +179,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
             override fun onButtonClickSure() {
                 UserContans.isPause = true;
                 mCurrentDownTimer?.cancel()
-                finish()
+
+                //取消标记
+                markSnListData(true)
+              //  finish()
             }
         }, "本次课程时间过短，退出将不保存运动数据").show()
     }
@@ -207,12 +224,18 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
         mDataShowBeans.forEach {
             removemAddList.add(it)
         }
+
+        //取消标记
+        markSnListData(false)
+
         mActPresenter.postCourse(
             removemAddList,
             UserContans.info.id,
             "1",
             endTime
         )
+
+
     }
 
     var isRestart = false;
@@ -504,7 +527,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 if (UserContans.userInfoHashMap.containsKey(sn)) {
                     //是已经选择的就显示没有选择的就去掉
 
-                    var select = UserContans.userInfoHashMap.get(sn)!!.isSelect
+                    val select = UserContans.userInfoHashMap.get(sn)!!.isSelect
                     Log.e("Ncouse", "select" + select)
                     if (select) {
                         val secondHeartRateBean: SecondHeartRateBean =
@@ -748,5 +771,41 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
         }
         return super.onKeyDown(keyCode, event)
     }
+
+    private fun markSnListData(isFinish : Boolean){
+
+        var para = HashMap<String,List<String>>()
+
+        //遍历集合，得到已经选择的用户
+        var selectList = emptyList<String>()
+        var unSelectList = arrayListOf<String>()
+
+        for(index in 0 until mDataShowBeans.size ){
+            unSelectList.add(mDataShowBeans[index].devicesSN)
+        }
+
+        para["markList"] = selectList
+        para["unmarkList"] = unSelectList
+        val requestBody: RequestBody =
+            RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
+        RetrofitHelper.service.markSnActiveTags(requestBody)
+            .subscribeOn(Schedulers.io())
+            .subscribeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : BaseObserver<BaseResponse<Boolean>>(){
+                override fun onSuccess(t: BaseResponse<Boolean>?) {
+                    if (t != null) {
+                        Log.e(tags,"---是否成功="+t.data)
+                        if(t.data == true && isFinish)
+                            finish()
+                    }
+                }
+
+                override fun dealError(msg: String?) {
+                    super.dealError(msg)
+                }
+            })
+
+    }
+
 
 }

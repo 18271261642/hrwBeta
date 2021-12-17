@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import com.blankj.utilcode.util.TimeUtils
+import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.app.BaseApp
@@ -38,6 +39,7 @@ import com.jkcq.hrwtv.wu.obsever.HrDataObservable
 import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.BaseResponse
 import com.jkcq.hrwtv.test.TestOne
+import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_flash.*
@@ -54,6 +56,8 @@ import java.util.concurrent.ConcurrentHashMap
 //首页面
 class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>(),
     FlashContract.FlashView, MainActivityView {
+
+    private val tags = "FlashActivity"
 
 
     private val mPreset: MainActivityPresenter by lazy {
@@ -74,6 +78,10 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
     var isReg = false;
     var strStringSn = StringBuffer()
 
+    val instance by lazy { this }
+    private var autoDialogView : ShowEmptyDialog ?= null
+
+
     override fun createPresenter(): FlashPresenter = FlashPresenter()
 
     override fun getLayoutId(): Int = R.layout.activity_flash
@@ -91,6 +99,7 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
             mActPresenter?.getClubInfo()
         }
         showClubnam()
+
     }
 
     /**
@@ -162,7 +171,7 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
 
 
         }
-        layout_course.setOnClickListener {
+        layout_course.setOnClickListener {   //PK 模式
             if (isReg) {
 
                 CacheDataUtil.sHeartModel = Constant.COURSE_MODEL
@@ -488,7 +497,7 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
     override fun update(o: Observable?, arg: Any?) {
         super.update(o, arg)
         if (o is HrDataObservable) {
-            if (count == 0 || count % 10 == 0) {
+            if (count == 0 || count % 10 == 0) {    //每10s刷新一次
                 doCommonHRTask(arg as ConcurrentHashMap<String, Int>)
             }
             count++
@@ -504,6 +513,9 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
     var sn = "";
     var hrValue = 0
     private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
+
+        Log.e(tags,"--11----ANT发送过来的SN码="+sources.toString())
+
         strStringSn.delete(0, strStringSn.length)
         sources.forEach {
             sn = it.key
@@ -542,6 +554,7 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
 
     open fun uploadDevciesSN(devicesSN: String) {
 
+        //Log.e(tags,"---22----ANT发送过来的SN码="+devicesSN)
 
         //查询SN值对应的userinfo
         RetrofitHelper.service.getSnListToUserInfo(
@@ -551,6 +564,10 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(object : BaseObserver<BaseResponse<List<UserBean>>>() {
                 override fun onSuccess(baseResponse: BaseResponse<List<UserBean>>) {
+
+                    Log.e(tags,"-----获取成功="+Gson().toJson(baseResponse))
+
+
                     baseResponse.data?.let {
                         CacheDataUtil.getUserMap()
                         it.forEach {

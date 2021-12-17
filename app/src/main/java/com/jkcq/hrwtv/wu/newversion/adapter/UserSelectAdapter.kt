@@ -1,6 +1,7 @@
 package com.jkcq.hrwtv.wu.newversion.adapter
 
 import android.app.Activity
+import android.support.constraint.ConstraintLayout
 import android.support.v7.widget.RecyclerView
 import android.text.TextUtils
 import android.view.LayoutInflater
@@ -86,6 +87,8 @@ class UserSelectAdapter(private val mContext: Activity, private var mDatas: List
                 //AnimationUtil.ScaleDownView(holder.itemView)
             }
         }
+
+
         holder.itemView.setOnClickListener {
             info.isSelect = !info.isSelect
             if (info.isSelect) {
@@ -141,17 +144,31 @@ class UserSelectAdapter(private val mContext: Activity, private var mDatas: List
 
     class MyViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        var iv_bg: ImageView
+        var iv_bg: ImageView = itemView.findViewById(R.id.iv_bg)
         var iv_head: ImageView
         var iv_select: ImageView
         var tv_name: TextView
 
 
         init {
-            iv_bg = itemView.findViewById(R.id.iv_bg);
             tv_name = itemView.findViewById(R.id.tv_name);
             iv_head = itemView.findViewById(R.id.iv_head);
             iv_select = itemView.findViewById(R.id.iv_select);
+        }
+    }
+
+
+    //全选或全不选
+    public fun setAllSelectStatus(isSelect: Boolean){
+
+        for(index in 0..mDatas.size){
+
+        }
+
+        mDatas.forEach {
+            it.isSelect = isSelect
+            notifyDataSetChanged()
+
         }
     }
 }
