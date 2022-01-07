@@ -1,6 +1,7 @@
 package com.jkcq.hrwtv.wu
 
 import android.content.*
+import android.os.Build
 import android.os.IBinder
 import android.text.TextUtils
 import android.util.Log
@@ -28,10 +29,6 @@ import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.manager.Preference
 import com.jkcq.hrwtv.wu.mvp.FlashContract
 import com.jkcq.hrwtv.wu.mvp.FlashPresenter
-import com.jkcq.hrwtv.wu.newversion.activity.CourseSelectActivity
-import com.jkcq.hrwtv.wu.newversion.activity.NCourseActivity
-import com.jkcq.hrwtv.wu.newversion.activity.NHallActivity
-import com.jkcq.hrwtv.wu.newversion.activity.NPkActivity
 import com.jkcq.hrwtv.wu.newversion.activity.mamager.ManagerSettingActivity
 import com.jkcq.hrwtv.wu.newversion.observa.UnRegObservable
 import com.jkcq.hrwtv.wu.obsever.AddUseObservable
@@ -40,6 +37,7 @@ import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.BaseResponse
 import com.jkcq.hrwtv.test.TestOne
 import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
+import com.jkcq.hrwtv.wu.newversion.activity.*
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_flash.*
@@ -48,6 +46,9 @@ import kotlinx.android.synthetic.main.activity_flash.tv_name
 import kotlinx.android.synthetic.main.activity_flash.tv_time
 import kotlinx.android.synthetic.main.activity_ncourse.*
 import kotlinx.android.synthetic.main.ninclude_title.*
+import okhttp3.MediaType
+import okhttp3.RequestBody
+import test.TestPKActivity
 import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
@@ -100,7 +101,55 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
         }
         showClubnam()
 
+        unMarkTags()
     }
+
+
+
+    private fun unMarkTags(){
+        //清楚记录掉线再上线记录的数据
+        BaseApp.recordHashData.clear()
+
+
+        //判断已打标签是否为空，不为空取消标签
+        if(UserContans.privateMarkTagsMap.isEmpty()){
+            return
+        }
+        val para = HashMap<String,List<String>>()
+
+        //遍历集合，得到已经选择的用户
+        val selectList = emptyList<String>()
+        val unSelectList = arrayListOf<String>()
+        UserContans.privateMarkTagsMap.forEach { (t: String?, u: Int?) ->
+            unSelectList.add(t)
+        }
+
+        para["markList"] = selectList
+        para["unmarkList"] = unSelectList
+
+
+        val requestBody: RequestBody =
+            RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
+        RetrofitHelper.service.markSnActiveTags(requestBody)
+            .subscribeOn(Schedulers.io())
+            .subscribeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : BaseObserver<BaseResponse<Boolean>>(){
+                override fun onSuccess(t: BaseResponse<Boolean>?) {
+                    if (t != null) {
+                        Log.e(tags,"---是否成功="+t.data)
+                        if(t.data == true){
+                            UserContans.privateMarkTagsMap.clear()
+                        }
+                    }
+                }
+
+                override fun dealError(msg: String?) {
+                    super.dealError(msg)
+                }
+            })
+    }
+
+
 
     /**
      * 系统的一个广播，每分钟会发送一个广播
@@ -239,7 +288,7 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
 
 
         tv_name.setOnLongClickListener {
-            startActivity(Intent(this@FlashActivity,TestOne::class.java))
+            startActivity(Intent(this@FlashActivity, NewPkActivity::class.java))
             return@setOnLongClickListener true
         }
     }
@@ -404,10 +453,16 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
                         )
                     } else {
                         //PK模式
+//                        var intent = Intent(
+//                            this@FlashActivity,
+//                            NPkActivity::class.java
+//                        )
+
                         var intent = Intent(
                             this@FlashActivity,
-                            NPkActivity::class.java
+                            NewPkActivity::class.java
                         )
+
                         intent.putExtra("isRestart", true)
                         startActivity(
                             intent

@@ -33,7 +33,7 @@ open class BaseHeartResultView : RelativeLayout {
     /**
      * recyclerview 相关
      */
-    protected var mShowHeartRateData = CopyOnWriteArrayList<DevicesDataShowBean>()
+    public var mShowHeartRateData = CopyOnWriteArrayList<DevicesDataShowBean>()
     private var scrollHelper: NewPagingScrollHelper? = null
     private var isScroll = false
     private var mTotalPage = 0;
@@ -51,7 +51,7 @@ open class BaseHeartResultView : RelativeLayout {
         val SHOW_TYPE_COURSE = 1;
     }
 
-    protected var mShowType = SHOW_TYPE_HALL;
+    protected var mShowType = 2;
 
     constructor(context: Context) : super(context) {
         mContext = context
@@ -104,7 +104,18 @@ open class BaseHeartResultView : RelativeLayout {
                 }
             }
         } else {
-
+            layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    mSize = mShowHeartRateData.size
+                    val count: Int
+                    if (mSize >= 0 && mSize <= 6) {
+                        count = 8
+                    } else {
+                        count = 6
+                    }
+                    return 2
+                }
+            }
         }
         recyclerview_hall.layoutManager = layoutManager
 
@@ -220,12 +231,15 @@ open class BaseHeartResultView : RelativeLayout {
 //        Log.e("testP", "showLast=" + showLast + "mShowHeartRateData.size=" + mShowHeartRateData.size);
             for (i in showStartIndex until (showLast - 1)) {
 //             Log.e("testP", "index=" + i+" sn="+mShowHeartRateData.get(i).devicesSN);
-                if (AdapterUtil.convertRang((mShowHeartRateData.get(i).precent).toFloat())
-                    != AdapterUtil.convertRang((mShowHeartRateData.get(i + 1).precent).toFloat())
-                ) {
-                    isShowParticle = false
-                    return
+                if(mShowHeartRateData.size-1>i){
+                    if (AdapterUtil.convertRang((mShowHeartRateData.get(i).precent).toFloat())
+                        != AdapterUtil.convertRang((mShowHeartRateData.get(i + 1).precent).toFloat())
+                    ) {
+                        isShowParticle = false
+                        return
+                    }
                 }
+
             }
         } else {
             val showLast = mCurrentPage * mPageCournt - 1
@@ -242,12 +256,14 @@ open class BaseHeartResultView : RelativeLayout {
         }
         if (!isShowParticle) {
             isShowParticle = true
-            EventBus.getDefault().post(
-                TypeEvent(
-                    EventConstant.PARTICLE,
-                    mShowHeartRateData.get(showStartIndex).precent
+            if(showStartIndex < mShowHeartRateData.size-1){
+                EventBus.getDefault().post(
+                    TypeEvent(
+                        EventConstant.PARTICLE, mShowHeartRateData.get(showStartIndex).precent
+                    )
                 )
-            )
+            }
+
         }
 
     }

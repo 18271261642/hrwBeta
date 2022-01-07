@@ -43,6 +43,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.reactivex.Observable;
@@ -349,6 +350,7 @@ public class MyMqttService extends BaseMqttservice {
             int energy = Integer.parseInt(datas[2]);
             UserContans.mSnHrMap.put(sn, heartRate);
             UserContans.mSnHrTime.put(sn, System.currentTimeMillis());
+         //   Log.e(TAG,"------mqtt接收数据="+sn+" "+"\n"+DateUtils.getFormatData(UserContans.mSnHrTime.get(sn)));
         }
     }
 
@@ -399,6 +401,7 @@ public class MyMqttService extends BaseMqttservice {
 
             }
         }*/
+
         HrDataObservable.getInstance().sendAllHrData(UserContans.mSnHrMap);
 
     }

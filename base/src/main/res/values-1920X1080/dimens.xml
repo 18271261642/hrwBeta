@@ -148,7 +148,8 @@
     <dimen name="dp266">266dp</dimen>
     <dimen name="dp400">400dp</dimen>
 
-    <dimen name="ncard1_with">285dp</dimen>
+    <!--285dp-->
+    <dimen name="ncard1_with">300dp</dimen>
     <dimen name="ncard1_height">188dp</dimen>
 
 
@@ -224,7 +225,7 @@
     <dimen name="dp158">158dp</dimen>
     <dimen name="dp278">300dp</dimen>
     <dimen name="dp130">130dp</dimen>
-    <dimen name="ncard4_with">210dp</dimen>
+    <dimen name="ncard4_with">225dp</dimen>
     <dimen name="ncard4_height">120dp</dimen>
 
     <dimen name="sp6">6sp</dimen>

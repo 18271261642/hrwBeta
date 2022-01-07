@@ -38,7 +38,8 @@ public class HallAdapter extends RecyclerView.Adapter<HallAdapter.MyViewHolder> 
     Resources resource;
     private int size = 8;
 
-    private Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+
 
     public HallAdapter(Context context, List<DevicesDataShowBean> data) {
         this.mDatas = data;
@@ -79,8 +80,8 @@ public class HallAdapter extends RecyclerView.Adapter<HallAdapter.MyViewHolder> 
                 url = info.getHeadUrl();
             }
             //设置背景
-            //  Log.e("size", "size------------" + size + "info.getUser().getJoinTime()=" + info.getUser().getJoinTime());
-            boolean isCard1 = size <= 6 ? true : false;
+              Log.e("size", "size------------" + size + "info.getUser().getJoinTime()=" + info.getJoinTime());
+            boolean isCard1 = size <= 6;
             if (isCard1) {
                 setCenterLayout(holder, resource.getDimension(R.dimen.ncard1_with), resource.getDimension(R.dimen.ncard1_height), resource.getDimension(R.dimen.ncard1_content_with), resource.getDimension(R.dimen.ncard1_content_height));
                 setImageHeightAndWith(holder.iv_head, mContext.getResources().getDimension(R.dimen.ncard1_head_height), mContext.getResources().getDimension(R.dimen.ncard1_head_with));
@@ -98,6 +99,8 @@ public class HallAdapter extends RecyclerView.Adapter<HallAdapter.MyViewHolder> 
                 paramsSeekbar.width = DisplayUtils.dip2px(mContext, 10f);
                 holder.hrStageView.setLayoutParams(paramsSeekbar);
             }
+
+
             setImaveScale(holder.iv_hr, holder.iv_cal, holder.iv_point, isCard1);
             AdapterUtil.setItemBg(holder.l_layout, Integer.parseInt(info.getPrecent()), mContext, mContext.getResources().getDimension(R.dimen.dp8), holder.iv_current_stren, isCard1);
             long currenttime = System.currentTimeMillis();
@@ -138,11 +141,12 @@ public class HallAdapter extends RecyclerView.Adapter<HallAdapter.MyViewHolder> 
 
         Log.e("setMatchPercent", "CacheDataUtil.mCurrentRange" + CacheDataUtil.mCurrentRange);
         if (CacheDataUtil.mCurrentRange > 5) {
-            point = HeartRateConvertUtils.hearRate2Point(
-                    info.getCal(),
-                    Constant.MODE_ALL,
-                    0
-            );
+//            point = HeartRateConvertUtils.hearRate2Point(
+//                    info.getCal(),
+//                    Constant.MODE_ALL,
+//                    0
+//            );
+            point = info.getPoint();
             Log.e("setMatchPercentFree", "info.getCal()" + info.getCal() + "point" + point);
             info.setPoint(point);
             holder.tv_point.setText(HeartRateConvertUtils.doubleParseStr(point));

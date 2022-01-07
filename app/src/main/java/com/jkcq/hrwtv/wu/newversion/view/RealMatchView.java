@@ -18,6 +18,8 @@ import com.jkcq.hrwtv.http.bean.CourseDetail;
 import com.jkcq.hrwtv.service.UserContans;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class RealMatchView extends View {
@@ -162,7 +164,7 @@ public class RealMatchView extends View {
         if (isCourse) {
             this.mTotalSecond = UserContans.couserTime / Constant.REFRESH_RATE;
         } else {
-            if (mDatas.get(mDatas.size() - 1).getEnd() > mTotalSecond) {
+            if (mDatas.size()>0 && mDatas.get(mDatas.size() - 1).getEnd() > mTotalSecond) {
                 mTotalSecond += (30 * 60);
             } else {
                 //this.mTotalSecond = 10;
@@ -174,7 +176,14 @@ public class RealMatchView extends View {
         this.mDatas.addAll(mDatas);
 
 
-        Log.e("list", "setValue mDatas=" + mDatas.size() + "this.mTotalSecond=" + this.mTotalSecond + ",mDatas.get(mDatas.size() - 1).getEnd()=" + mDatas.get(mDatas.size() - 1).getEnd());
+        Collections.sort(mDatas, new Comparator<CourseDetail>() {
+            @Override
+            public int compare(CourseDetail o1, CourseDetail o2) {
+                return o1.getBegin();
+            }
+        });
+
+        //Log.e("list", "setValue mDatas=" + mDatas.size() + "this.mTotalSecond=" + this.mTotalSecond + ",mDatas.get(mDatas.size() - 1).getEnd()=" + mDatas.get(mDatas.size() - 1).getEnd());
         invalidate();
     }
 

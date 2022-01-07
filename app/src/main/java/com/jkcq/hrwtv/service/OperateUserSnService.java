@@ -75,10 +75,10 @@ public class OperateUserSnService extends Service implements Observer{
     public void update(Observable o, Object arg) {
         if(o instanceof HrDataObservable ){
             if (count == 0 || count % 10 == 0) {    //每10s刷新一次
-                doCommonHRTask(arg);
-
                 //查询正在活动的标签
                 queryActiveMarkSn();
+
+                doCommonHRTask(arg);
             }
             count++;
             if (count > 10) {
@@ -98,14 +98,18 @@ public class OperateUserSnService extends Service implements Observer{
                         Log.e(TAG,"----正在活动的标签="+new Gson().toJson(stringBaseResponse));
                         try {
                             Map<String,List<String>> snStr = (Map<String, List<String>>) stringBaseResponse.getData();
-                            if(snStr != null){
-                                List<String> snList = snStr.get("snList");
-                                if(snList != null && !snList.isEmpty()){
-                                    for(String st : snList){
-                                        UserContans.markTagsMap.put(st,-1);
-                                    }
-
+                            if(snStr == null){
+                                UserContans.markTagsMap.clear();
+                                return;
+                            }
+                            List<String> snList = snStr.get("snList");
+                            if(snList != null && !snList.isEmpty()){
+                                for(String st : snList){
+                                    UserContans.markTagsMap.put(st,-1);
                                 }
+
+                            }else{
+                                UserContans.markTagsMap.clear();
                             }
                         }catch (Exception e){
                             e.printStackTrace();
@@ -137,13 +141,14 @@ public class OperateUserSnService extends Service implements Observer{
         for(Map.Entry<String,Integer> mmp : snList.entrySet()){
             String snStr = mmp.getKey();
             int heartV = mmp.getValue();
-           // stringBuffer.append(snStr).append(",");
-            if (!UserContans.userInfoHashMap.containsKey(snStr)) {
-                if (!UserContans.mCacheMap.containsKey(snStr)) {
-                    //1.查询用户信息
-                    stringBuffer.append(snStr).append(",");
-                }
-            }
+            //这里处理在小程序端解绑再绑定问题，解绑后大厅模式下线，再绑定后再上线
+            stringBuffer.append(snStr).append(",");
+//            if (!UserContans.userInfoHashMap.containsKey(snStr)) {
+//                if (!UserContans.mCacheMap.containsKey(snStr)) {
+//                    //1.查询用户信息
+//                    stringBuffer.append(snStr).append(",");
+//                }
+//            }
         }
 
         if(stringBuffer.length()>0)
@@ -187,12 +192,17 @@ public class OperateUserSnService extends Service implements Observer{
             CacheDataUtil.getUserMap();
             for(UserBean userBean : ltUser){
                 if(userBean.getId() != null){
+
                     userBean.setAge( UserInfoUtil.parseAge(userBean.getBirthday()));
                     userBean.setJoinTime(System.currentTimeMillis());
                     if (!UserContans.userInfoHashMap.containsKey(userBean.getSn())) {
                         UserContans.userInfoHashMap.put(userBean.getSn(), userBean);
                     }
                     UserContans.mCacheMap.put(userBean.getSn(), userBean.getSn());
+
+                }else{
+                    UserContans.userInfoHashMap.remove(userBean.getSn());
+                    UserContans.mCacheMap.remove(userBean.getSn());
                 }
             }
 

@@ -10,6 +10,7 @@ import android.support.annotation.RequiresApi
 import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
+import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.configure.Constant
@@ -29,9 +30,11 @@ import com.jkcq.hrwtv.util.HeartRateConvertUtils
 import com.jkcq.hrwtv.util.Logger
 import com.jkcq.hrwtv.wu.newversion.view.HeartResultView
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
+import com.jkcq.hrwtv.wu.util.MatchUtils
 import com.jkcq.hrwtv.wu.util.ShapeUtil
 import kotlinx.android.synthetic.main.activity_flash.*
 import kotlinx.android.synthetic.main.activity_nhall.*
+import kotlinx.android.synthetic.main.layout_heartresult_view.*
 import kotlinx.android.synthetic.main.ninclude_title.*
 import kotlinx.android.synthetic.main.ninclude_title.layout_setting
 import kotlinx.android.synthetic.main.ninclude_title.tv_name
@@ -100,10 +103,10 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
     override fun getClubSuccess(info: ClubInfo?) {
         if (TextUtils.isEmpty(info?.getUid())) {
-            tv_name.setText("未知会所")
+            tv_name.text = "未知会所"
             //showSettingView();
         } else {
-            tv_name.setText(info?.getName())
+            tv_name.text = info?.name
         }
     }
 
@@ -138,8 +141,11 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
         layout_setting.nextFocusLeftId = R.id.layout_setting
         layout_setting.nextFocusRightId = R.id.layout_setting
-        layout_setting.nextFocusDownId = R.id.layout_setting
+        layout_setting.nextFocusDownId = R.id.recyclerview_hall
         layout_setting.nextFocusUpId = R.id.layout_setting
+
+        recyclerview_hall.nextFocusUpId = R.id.layout_setting
+
         mDataShowBeans = heartresult_view.getAdapterData()
 
         layout_setting.setOnClickListener {
@@ -206,9 +212,9 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
         CacheDataUtil.mCurrentRange = 10
         UserContans.couserTime = 60 * 60 / Constant.REFRESH_RATE
         HrDataObservable.getInstance().addObserver(this)
-        tv_name.setText(mclubName)
+        tv_name.text = mclubName
         DoubleClickUtil.getInstance().initHandler(Handler(Looper.getMainLooper()))
-        tv_man_count.setText(getString(R.string.people, "0"))
+        tv_man_count.text = getString(R.string.people, "0")
         updateTime()
         val filter = IntentFilter()
         filter.addAction(Intent.ACTION_TIME_TICK)
@@ -232,12 +238,10 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     @SuppressLint("SetTextI18n")
     private fun updateTime() {
         val calendar = Calendar.getInstance()
-        tv_time.setText(
-            String.format(
-                "%02d",
-                calendar.get(Calendar.HOUR_OF_DAY)
-            ) + ":" + String.format("%02d", calendar.get(Calendar.MINUTE))
-        )
+        tv_time.text = String.format(
+            "%02d",
+            calendar.get(Calendar.HOUR_OF_DAY)
+        ) + ":" + String.format("%02d", calendar.get(Calendar.MINUTE))
     }
 
     override fun onDestroy() {
@@ -278,12 +282,12 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     var dataShowBean: DevicesDataShowBean? = null
     var dataSize = 0
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun doHallModel(
         sources: ConcurrentHashMap<String, Int>
     ) {
 
-        Log.e(tags,"-----source="+sources.toString())
-
+        Log.e(tags, "-----source=$sources")
 
         //查询用户信息
         doCommonHRTask(sources)
@@ -339,8 +343,8 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
                     dataShowBean!!.addStageHeart(key, precent)
                     dataShowBean!!.setAllHrList(heartRate)
-                    //计算每一分钟的数据
-                    if (dataShowBean!!.allHrList.size == 60 / Constant.REFRESH_RATE) {
+                    //计算每一分钟的数据 60  改成30S计算一次
+                    if (dataShowBean!!.allHrList.size == 10 / Constant.REFRESH_RATE) {
                         dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
                         dataShowBean!!.allHrList.clear()
                         var minHr = 0
@@ -389,6 +393,18 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
                             cal = 0.0
                         }
                         dataShowBean!!.cal = cal
+
+
+                        Log.e(tags,"-----30s计算一次="+Gson().toJson(dataShowBean!!.calAllHrList))
+
+                        var heartPoint = dataShowBean!!.point;
+                        if(userInfo != null){
+                            dataShowBean!!.point = userInfo?.let { it1 ->
+                                MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
+                                    dataShowBean!!.calAllHrList)
+                            }!!
+                        }
+
                     }
 
                 }
@@ -441,44 +457,36 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
     var hrValue = 0
 
 
-    private var tmpResultSource : ConcurrentHashMap<String,Int> ?= null
-
-
     @RequiresApi(Build.VERSION_CODES.N)
-    @SuppressLint("LongLogTag")
     private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
 
-
-        Log.e(tags,"-----000source="+sources.toString())
-
-        tmpResultSource = ConcurrentHashMap()
-
-        tmpResultSource = sources
-
         var markList = UserContans.markTagsMap;
+
+        //Log.e(tags,"-----000source="+sources.toString()+"\n"+"已保存集合="+UserContans.userInfoHashMap.toString()+"\n"+"已打标签集合="+markList.toString())
+
         if(!markList.isEmpty()){
-            tmpResultSource!!.forEach { (t: String, u: Int) ->
-                if(markList[t] == -1){
-                    tmpResultSource!!.remove(t)
+           markList.forEach { (t: String?, u: Int?) ->
+               if(sources[t] != null){
+                   sources[t] = -1
+               }
 
-                }
-            }
+           }
         }
-        Log.e(tags,"-----处理后的source="+sources.toString()+"\n"+tmpResultSource.toString())
+        Log.e(tags, "-----处理后的source=$sources")
 
 
-
-        tmpResultSource!!.forEach {
+        sources.forEach {
             Logger.e("doCommonHRTask", sn)
             sn = it.key
             hrValue = it.value
-            Log.e(tags,"------查询用户信息="+UserContans.userInfoHashMap.toString())
+           // Log.e(tags,"------查询用户信息="+it.toString())
 
             if (!UserContans.userInfoHashMap.containsKey(sn)) {
                 if (!UserContans.mCacheMap.containsKey(sn)) {
                     //1.查询用户信息
                 }
             } else {
+
                 if(hrValue != -1){
                     val secondHeartRateBean: SecondHeartRateBean =
                         if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
@@ -495,8 +503,11 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
                     secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
                     UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
                 }
+
+
             }
         }
+
         //这里需要
         secondMap.clear()
         secondMap.putAll(UserContans.secondHeartRateBeanHashMap)
@@ -512,26 +523,31 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
      * @param sources
      */
 
-    var time = 0L
+    //时间，赋值为当前时间，防止异常掉线
+    var time = System.currentTimeMillis()//0L
     var isRemove = false;
     private fun doHallTask() {
         try {
+            var isDrop = !UserContans.markTagsMap.isEmpty()
             //判断设备是否掉线，掉线的移除
             val currentTime = System.currentTimeMillis()
             //  var isRemove = false
             //接收数据的时间
             reMoveList.clear()
             isRemove = false
-            if(mDataShowBeans.size==0)
+            if (mDataShowBeans.size == 0)
                 return
             for (i in 0 until mDataShowBeans.size) {
                 val dropBean = mDataShowBeans[i] ?: return;
                 //已经掉线，直接移除
                 sn = dropBean.devicesSN
-                time = UserContans.mSnHrTime[sn]!!
-                Logger.e("drop", "currentTime - time=" + (currentTime - time)+" time="+time)
+                if(UserContans.mSnHrTime.containsKey(sn)){
+                    time = UserContans.mSnHrTime[sn]!!
+                }
 
-                if (currentTime - time >= Constant.DROP_TIME) {
+
+                // || (isDrop && UserContans.markTagsMap.containsKey(sn))
+                if (currentTime - time >= Constant.DROP_TIME || (isDrop && UserContans.markTagsMap.containsKey(sn)) ) {
                     if (UserContans.userInfoHashMap.containsKey(dropBean.devicesSN)) {
                         UserContans.userInfoHashMap.remove(dropBean.devicesSN);
                     }
@@ -547,12 +563,13 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
                 }
             }
+
             if (isRemove) {
                 mHandler.sendEmptyMessage(REMOVE_DATA)
             } else {
                 mHandler.sendEmptyMessage(UPDATE_HALL)
             }
-        }catch (e : Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
 

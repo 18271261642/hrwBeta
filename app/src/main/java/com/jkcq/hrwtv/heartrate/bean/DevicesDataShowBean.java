@@ -217,6 +217,14 @@ public class DevicesDataShowBean implements Comparable {
         return allHrList;
     }
 
+    public void setAllHrList(ArrayList<Integer> hrList){
+        if (allHrList == null) {
+            allHrList = new ArrayList<>();
+        }
+        allHrList.clear();
+        this.allHrList.addAll(hrList);
+    }
+
     public void setAllHrList(Integer hr) {
         if (allHrList == null) {
             allHrList = new ArrayList<>();
@@ -587,5 +595,47 @@ public class DevicesDataShowBean implements Comparable {
         return false;
     }
 
-
+    @Override
+    public String toString() {
+        return "DevicesDataShowBean{" +
+                "pkTeam=" + pkTeam +
+                ", ranking=" + ranking +
+                ", time=" + time +
+                ", devicesSN='" + devicesSN + '\'' +
+                ", courseTime=" + courseTime +
+                ", userId='" + userId + '\'' +
+                ", age=" + age +
+                ", weight=" + weight +
+                ", height=" + height +
+                ", headUrl='" + headUrl + '\'' +
+                ", nikeName='" + nikeName + '\'' +
+                ", joinTime=" + joinTime +
+                ", sex='" + sex + '\'' +
+                ", cal=" + cal +
+                ", liveHeartRate=" + liveHeartRate +
+                ", averageHeartRate=" + averageHeartRate +
+                ", averageHeartPercent=" + averageHeartPercent +
+                ", point=" + point +
+                ", precent='" + precent + '\'' +
+                ", totalCount=" + totalCount +
+                ", matchCount=" + matchCount +
+                ", matchRate=" + matchRate +
+                ", sortType='" + sortType + '\'' +
+                ", courseSortType='" + courseSortType + '\'' +
+                ", courseId='" + courseId + '\'' +
+                ", isOnline=" + isOnline +
+                ", mIntervalHearts=" + mIntervalHearts +
+                ", hrTaskList=" + hrTaskList +
+                ", hrList=" + hrList +
+                ", tempList=" + tempList +
+                ", allHrList=" + allHrList +
+                ", calAllHrList=" + calAllHrList +
+                ", minHrList=" + minHrList +
+                ", mAnimateTime=" + mAnimateTime +
+                ", currentPoint=" + currentPoint +
+                ", lastPoint=" + lastPoint +
+                ", lastStreng=" + lastStreng +
+                ", mDatas=" + mDatas +
+                '}';
+    }
 }

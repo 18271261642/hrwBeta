@@ -10,6 +10,7 @@ import android.support.multidex.MultiDex;
 
 import com.jkcq.hrwtv.BuildConfig;
 import com.jkcq.hrwtv.eventBean.EventConstant;
+import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean;
 import com.jkcq.hrwtv.heartrate.bean.ShowBean;
 import com.jkcq.hrwtv.http.bean.ClubInfo;
 import com.jkcq.hrwtv.http.bean.CourseUserInfo;
@@ -40,6 +41,10 @@ public class BaseApp extends Application {
 
     public static volatile int sSortType = EventConstant.SORT_DATA_CAL;
     public static volatile int sMainType = EventConstant.MAIN_DATA_HR_STRENGTH;
+
+    //用于记录课程或PK模式已经超过2分钟的用户信息
+    public static ConcurrentHashMap<String, DevicesDataShowBean> recordHashData = new ConcurrentHashMap<>();
+
 
     // 初始化Instance；
     public synchronized void setInstance() {

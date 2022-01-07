@@ -131,8 +131,11 @@ class PkResultActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter
         rl_img_back.requestFocus()
         rl_img_back.nextFocusLeftId = R.id.rl_img_back
         rl_img_back.nextFocusRightId = R.id.rl_img_back
-        rl_img_back.nextFocusDownId = R.id.rl_img_back
+        rl_img_back.nextFocusDownId = R.id.rv_sort_result
         rl_img_back.nextFocusUpId = R.id.rl_img_back
+
+        rv_sort_result.nextFocusUpId = R.id.rl_img_back
+
         if (CacheDataUtil.mCurrentRange > 5) {
             tv_title_match.visibility = View.GONE
         } else {

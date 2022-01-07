@@ -30,7 +30,8 @@ public class UserContans {
 
     //已经打标签的sn码集合，已经打标签的不能在大厅模式显示，课程和PK模式下打标签
     public volatile static ConcurrentHashMap<String,Integer> markTagsMap = new ConcurrentHashMap<>();
-
+    //单个的盒子打标签sn码集合，仅用于当前设备取消标签
+    public volatile static ConcurrentHashMap<String,Integer> privateMarkTagsMap = new ConcurrentHashMap<>();
 
     volatile public static ConcurrentHashMap<String, SecondHeartRateBean> secondHeartRateBeanHashMap = new ConcurrentHashMap<>();
 

@@ -64,7 +64,7 @@
         android:gravity="center"
         android:paddingLeft="@dimen/dp15"
         android:paddingRight="@dimen/dp15"
-        android:text="深圳松岗满京华店"
+        android:text="在店人数: 0"
         android:textColor="@color/white"
         android:textSize="@dimen/sp15"
         android:textStyle="bold"
@@ -74,7 +74,7 @@
     <View
         android:layout_width="0dp"
         android:layout_height="1dp"
-        android:layout_weight="1"></View>
+        android:layout_weight="1"/>
 
     <LinearLayout
         android:id="@+id/layout_select_user"

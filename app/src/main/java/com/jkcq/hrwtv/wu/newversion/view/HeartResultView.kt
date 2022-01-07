@@ -3,6 +3,8 @@ package com.jkcq.hrwtv.wu.newversion.view
 import android.content.Context
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
+import android.util.Log
+import com.google.gson.Gson
 import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
 import com.jkcq.hrwtv.wu.newversion.adapter.HallAdapter
 import java.util.concurrent.CopyOnWriteArrayList
@@ -101,6 +103,7 @@ class HeartResultView : BaseHeartResultView {
 //        if (isSort) {
 //            sortData(mShowHeartRateData, type)
 //        }
+        Log.e("TAG","------updateView="+Gson().toJson(data))
         updateRecyclerView()
     }
 }

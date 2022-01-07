@@ -120,6 +120,16 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
         tv_hr.nextFocusRightId = R.id.tv_hr
 
 
+        rl_img_back.nextFocusDownId = R.id.rv_sort_result
+        tv_cal.nextFocusDownId = R.id.rv_sort_result
+        tv_point.nextFocusDownId = R.id.rv_sort_result
+        tv_heart_strength.nextFocusDownId = R.id.rv_sort_result
+        tv_hr.nextFocusDownId = R.id.rv_sort_result
+
+
+        rv_sort_result.nextFocusUpId = R.id.tv_cal
+
+
         tv_name.text = mclubName
 
         showCourseModel()
@@ -144,8 +154,8 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
     private var mCurrentPage = 1;
     var mTotalPage = 0
     var isScroll = false
-    val mChangeListener = object : NewPagingScrollHelper.OnPageListerner {
-        override fun onChangePage(totalPage: Int, currentPage: Int) {
+    val mChangeListener =
+        NewPagingScrollHelper.OnPageListerner { totalPage, currentPage ->
             LogUtil.e("mChangeListener", "totalPage=" + totalPage + "currentPage=" + currentPage)
 
 
@@ -161,10 +171,7 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
                 isScroll = true
             }
             mCurrentPage = currentPage;
-
         }
-
-    }
 
     /**
      * 轮播点的绘制

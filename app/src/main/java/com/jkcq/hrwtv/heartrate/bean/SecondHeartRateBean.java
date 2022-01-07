@@ -95,4 +95,20 @@ import java.util.ArrayList;
     public void setEnergy(int energy) {
         this.energy = energy;
     }
+
+
+    @Override
+    public String toString() {
+        return "SecondHeartRateBean{" +
+                "courseUserInfo=" + courseUserInfo +
+                ", userInfo=" + userInfo +
+                ", devicesSN='" + devicesSN + '\'' +
+                ", isTask=" + isTask +
+                ", time=" + time +
+                ", heart=" + heart +
+                ", energy=" + energy +
+                ", isOnline=" + isOnline +
+                ", heartList=" + heartList +
+                '}';
+    }
 }

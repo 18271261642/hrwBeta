@@ -2,10 +2,7 @@ package com.jkcq.hrwtv.wu.newversion.activity
 
 import android.annotation.SuppressLint
 import android.content.*
-import android.os.CountDownTimer
-import android.os.Handler
-import android.os.Looper
-import android.os.Message
+import android.os.*
 import android.support.v7.app.AlertDialog
 import android.text.TextUtils
 import android.util.Log
@@ -14,6 +11,7 @@ import android.view.View
 import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
+import com.jkcq.hrwtv.app.BaseApp
 import com.jkcq.hrwtv.configure.Constant
 import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
 import com.jkcq.hrwtv.heartrate.bean.SecondHeartRateBean
@@ -29,10 +27,12 @@ import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.newversion.view.CourseHeartResultView
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
+import com.jkcq.hrwtv.wu.util.MatchUtils
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_ncourse.*
 import kotlinx.android.synthetic.main.include_course_bottom.*
+import kotlinx.android.synthetic.main.layout_heartresult_view.*
 import kotlinx.android.synthetic.main.ninclude_title.*
 import okhttp3.MediaType
 import okhttp3.RequestBody
@@ -65,7 +65,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     private val secondMap = ConcurrentHashMap<String, SecondHeartRateBean>()
 
 
+    //显示并自动结束的dialog
+    private var autoDialogView : ShowEmptyDialog?=null
 
+    val instance by lazy {this}
 
 
     //    var dataShowBeans = ArrayList<DevicesDataShowBean>()
@@ -79,10 +82,19 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 UPDATE_HALL -> {
                     //原意是只更新改变的数据，但实际上更新了所有数据
                     heartresult_view.updateData(mDataShowBeans, isSort, mSortType)
+
+                    mDataShowBeans.forEach {
+                      if(!BaseApp.recordHashData.containsKey(it.devicesSN)){
+                          BaseApp.recordHashData[it.devicesSN] = it
+                      }   else{
+
+                      }
+                    }
+
+
                     // myMqttService!!.setTask(false)
                 }
                 ADD_DATA -> {
-
 
                     if (mAddList.size > 0) {
 
@@ -105,9 +117,9 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
 
                 }
                 REMOVE_DATA -> {
-                    /*reMoveList.forEach {
-                        removemAddList.add(mDataShowBeans[it])
-                    }*/
+//                    reMoveList.forEach {
+//                        removemAddList.add(mDataShowBeans[it])
+//                    }
                     heartresult_view.removeItem(reMoveList)
 
                     // myMqttService!!.setTask(false)
@@ -137,10 +149,9 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     //课程模式
     override fun uploadAllDataSuccess() {
 
-        finish()
         //跳转到结果页面
         startActivity(Intent(this, CourseSortActivity::class.java))
-
+        finish()
     }
 
 
@@ -167,6 +178,9 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
             back()
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            recyclerview_hall.focusable = 1
+        }
 
     }
 
@@ -412,8 +426,9 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                     }
 
                     dataShowBean!!.setAllHrList(heartRate)
-                    //计算每一分钟的数据
-                    if (dataShowBean!!.allHrList.size == 60 / Constant.REFRESH_RATE) {
+
+                    //计算每一分钟的数据 60已改为30
+                    if (dataShowBean!!.allHrList.size == 30 / Constant.REFRESH_RATE) {
                         dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
                         dataShowBean!!.allHrList.clear()
                         var minHr = 0
@@ -431,7 +446,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                             minHr = sum / size
                         }
                         dataShowBean!!.addMinHrList(minHr)
-                        if (gander.equals("1")) {
+                        if (gander.equals("1")) {   //男 卡路里
                             cal = HeartRateConvertUtils.hearRate2CaloriForMan(
                                 minHr,
                                 age,
@@ -439,7 +454,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                                 Constant.REFRESH_RATE,
                                 Constant.UNIT_MILLS
                             )
-                        } else {
+                        } else {  //女 卡路里
                             cal = HeartRateConvertUtils.hearRate2CaloriForWoman(
                                 minHr,
                                 age,
@@ -452,12 +467,55 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                             cal = 0.0
                         }
                         dataShowBean!!.cal = cal
+
+                        dataShowBean!!.point = userInfo?.let { it1 ->
+                            MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
+                                dataShowBean!!.calAllHrList)
+                        }!!
                     }
                 }
             } else {
                 dataShowBean = DevicesDataShowBean()
+                //判断是否已经再线过
+                val isSaved = BaseApp.recordHashData.containsKey(key)
+                if(isSaved){
+                    //开始加入的时间
+                    dataShowBean!!.joinTime = BaseApp.recordHashData[key]?.joinTime
+                    //掉线时间
+                    dataShowBean!!.time =  heartRateBean!!.time//BaseApp.recordHashData[key]?.time!!
+                    dataShowBean!!.cal = BaseApp.recordHashData[key]?.cal!!
+                    //平均心率强度
+                    dataShowBean!!.averageHeartPercent = BaseApp.recordHashData[key]?.averageHeartPercent!!
+                    dataShowBean!!.precent = BaseApp.recordHashData[key]?.precent!!
+                    var precent2 = HeartRateConvertUtils.hearRate2Percent(
+                        heartRate,
+                        HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                    ).toInt()
+                    dataShowBean!!.addStageHeart(key,precent2)
+                    BaseApp.recordHashData[key]?.let { it1 -> dataShowBean!!.allHrList.addAll(it1.allHrList) }
+
+                    val courseList = BaseApp.recordHashData[key]?.getmDatas()
+                    dataShowBean!!.setmDatas(courseList)
+
+                }else{
+                    dataShowBean!!.joinTime = System.currentTimeMillis()
+                    dataShowBean!!.time =  heartRateBean!!.time
+                    if (cal < 0) {
+                        cal = 0.0
+                    }
+                    dataShowBean!!.cal = cal
+                    //设置课程id
+                    dataShowBean!!.precent = HeartRateConvertUtils.hearRate2Percent(
+                        heartRate,
+                        HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                    ).toInt().toString()
+                    dataShowBean!!.addStageHeart(key, 0)
+
+                }
+
+
                 dataShowBean!!.age = age
-                dataShowBean!!.joinTime = System.currentTimeMillis()
+
                 dataShowBean!!.weight = weight
                 dataShowBean!!.sex = gander
                 if (userInfo != null) {
@@ -468,17 +526,8 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 }
                 dataShowBean!!.liveHeartRate = heartRate
                 dataShowBean!!.devicesSN = key
-                if (cal < 0) {
-                    cal = 0.0
-                }
-                dataShowBean!!.cal = cal
-                dataShowBean!!.addStageHeart(key, 0)
-                dataShowBean!!.time = heartRateBean!!.time
-                //设置课程id
-                dataShowBean!!.precent = HeartRateConvertUtils.hearRate2Percent(
-                    heartRate,
-                    HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
-                ).toInt().toString()
+
+
                 //保存SN
                 AllocationApi.getAllSNSet().add(key)
                 mAddList.offer(dataShowBean)
@@ -512,11 +561,18 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     var sn = ""
     var hrValue = 0
 
+
+     private var recordHeartList = CopyOnWriteArrayList<Int>()
+
     @SuppressLint("LongLogTag")
     private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
 
+
+        var isRecord = BaseApp.recordHashData.isNotEmpty()
+
+
         sources.forEach {
-            Logger.e("doCommonHRTask", sn)
+            Logger.e(tags, "doCommonHRTask$sn")
             sn = it.key
             hrValue = it.value
             if (!UserContans.userInfoHashMap.containsKey(sn)) {
@@ -527,24 +583,38 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 if (UserContans.userInfoHashMap.containsKey(sn)) {
                     //是已经选择的就显示没有选择的就去掉
 
-                    val select = UserContans.userInfoHashMap.get(sn)!!.isSelect
+                    val select = UserContans.userInfoHashMap[sn]!!.isSelect
                     Log.e("Ncouse", "select" + select)
+
+
+                    //判断是否是已经存在过，即已经上过课程，中途给停掉课程，再次上课
+                    val isExist = BaseApp.recordHashData.containsKey(sn)
+
                     if (select) {
                         val secondHeartRateBean: SecondHeartRateBean =
                             if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
-                                UserContans.secondHeartRateBeanHashMap.get(sn)!!
+                                UserContans.secondHeartRateBeanHashMap[sn]!!
                             } else {
                                 SecondHeartRateBean()
                             }
+                        if(isExist){
+                            recordHeartList.clear()
+
+                            BaseApp.recordHashData[sn]?.let { it1 ->
+                                Log.e(tags,"------已经存在的集合="+Gson().toJson(it1))
+                                recordHeartList.addAll(it1.allHrList) }
+                            recordHeartList.add(hrValue)
+                            secondHeartRateBean.heartList.addAll(recordHeartList)
+                        }else{
+                            secondHeartRateBean.heartList.add(hrValue)
+                        }
                         //接收到的所有心率数据
                         secondHeartRateBean.devicesSN = sn
-                        secondHeartRateBean.heartList.add(hrValue)
-                        secondHeartRateBean.heart = hrValue
+                        secondHeartRateBean.heart =  hrValue
                         secondHeartRateBean.isTask = false
-                        secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
+                        secondHeartRateBean.time = if(isExist) BaseApp.recordHashData[sn]?.joinTime!! else UserContans.mSnHrTime[sn]!!
                         //接收到的数据的时间戳
-                        UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
-
+                        UserContans.secondHeartRateBeanHashMap[sn] = secondHeartRateBean
                     } else {
                         if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
                             UserContans.secondHeartRateBeanHashMap.remove(sn)
@@ -556,6 +626,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
 
             }
         }
+
+        Logger.e(tags,"-------已处理="+Gson().toJson(UserContans.secondHeartRateBeanHashMap))
+
+
         //这里需要
         secondMap.clear()
         secondMap.putAll(UserContans.secondHeartRateBeanHashMap)
@@ -574,7 +648,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     var time = 0L
     var isRemove = false;
     private fun doHallTask() {
-
+        var markMap = UserContans.markTagsMap
 
         //判断设备是否掉线，掉线的移除
         val currentTime = System.currentTimeMillis()
@@ -596,7 +670,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
             Logger.e("drop", "currentTime - time=" + (currentTime - time))
 
             if (UserContans.userInfoHashMap.containsKey(sn)) {
-                if (!UserContans.userInfoHashMap.get(sn)!!.isSelect) {
+                if (!UserContans.userInfoHashMap.get(sn)!!.isSelect ) {
                     isRemove = true
                     reMoveList.add(sn)
                     //清除SN码的值
@@ -618,6 +692,8 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     }
 
     fun showCourseModel() {
+        if(UserContans.info == null)
+            return
         mCurrentHeartRateClassInfo = UserContans.info
         UserContans.couserTime = mCurrentHeartRateClassInfo.duration
         tv_course_name.text = mCurrentHeartRateClassInfo.courseName
@@ -677,6 +753,18 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                 doHallModel(UserContans.mSnHrMap)
             }
 
+
+            autoDialogView = ShowEmptyDialog(instance)
+            autoDialogView!!.show()
+            autoDialogView!!.setShowTime(3 * 1000)
+            autoDialogView!!.setContentTvTxt("挑战结束")
+            autoDialogView!!.setOnEmptyDialogListener {
+                autoDialogView!!.dismiss()
+                //完成后自动结束课程
+                UserContans.isPause = true;
+                mCurrentDownTimer?.cancel()
+                upgradeCourseData()
+            }
 
         }
 
@@ -773,7 +861,10 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     }
 
     private fun markSnListData(isFinish : Boolean){
-
+        //取消累计记录
+        BaseApp.recordHashData.clear()
+        if(mDataShowBeans.size == 0)
+            return
         var para = HashMap<String,List<String>>()
 
         //遍历集合，得到已经选择的用户
@@ -797,6 +888,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                         Log.e(tags,"---是否成功="+t.data)
                         if(t.data == true && isFinish){
                             UserContans.markTagsMap.clear()
+                            UserContans.privateMarkTagsMap.clear()
                             finish()
                         }
                     }

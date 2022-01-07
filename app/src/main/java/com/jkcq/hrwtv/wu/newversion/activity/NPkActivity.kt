@@ -6,6 +6,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.support.v7.widget.GridLayoutManager
 import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
@@ -16,8 +17,10 @@ import android.widget.LinearLayout
 import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
 import com.jkcq.hrwtv.R
+import com.jkcq.hrwtv.app.BaseApp
 import com.jkcq.hrwtv.base.mvp.BaseMVPActivity
 import com.jkcq.hrwtv.configure.Constant
+import com.jkcq.hrwtv.eventBean.EventConstant
 import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
 import com.jkcq.hrwtv.heartrate.bean.SecondHeartRateBean
 import com.jkcq.hrwtv.heartrate.bean.UserBean
@@ -33,15 +36,22 @@ import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.manager.Preference
 import com.jkcq.hrwtv.wu.newversion.view.PKItemView
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
+import com.jkcq.hrwtv.wu.util.MatchUtils
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_ncourse.*
+import kotlinx.android.synthetic.main.activity_new_pk_layout.*
+import kotlinx.android.synthetic.main.activity_new_pk_layout.newPkBlueView
+import kotlinx.android.synthetic.main.activity_new_pk_layout.newPkRedView
+import kotlinx.android.synthetic.main.activity_npk.*
 import kotlinx.android.synthetic.main.activity_pk_content.*
 import kotlinx.android.synthetic.main.include_course_bottom.*
+import kotlinx.android.synthetic.main.include_new_pk_progress_layout.*
 import kotlinx.android.synthetic.main.item_user_card.view.*
 import kotlinx.android.synthetic.main.layout_course_select.*
+import kotlinx.android.synthetic.main.layout_course_select.ll_point
 import kotlinx.android.synthetic.main.ninclude_title.*
 import okhttp3.MediaType
 import okhttp3.RequestBody
@@ -99,14 +109,27 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     var mRedCurrentShowBeans = ArrayList<DevicesDataShowBean>();
     var mBlueCurrentShowBeans = ArrayList<DevicesDataShowBean>();
 
+
+    var showResultRedList = CopyOnWriteArrayList<DevicesDataShowBean>()
+    var showBlueResultList = CopyOnWriteArrayList<DevicesDataShowBean>()
+
+    var redAdapter : NewPkAdapter ?= null
+    var blueAdapter : NewPkAdapter ?= null
+
+
+
+
     private val mHandler = object : Handler(Looper.getMainLooper()) {
 
         override fun handleMessage(msg: Message) {
             super.handleMessage(msg)
             when (msg.what) {
                 UPDATE_HALL -> {
+
+                    Log.e(tags,"-----UPDATE_HALL="+mDataShowBeans.size)
                     //原意是只更新改变的数据，但实际上更新了所有数据
-                    //heartresult_view.updateData(mDataShowBeans, isSort, mSortType)
+//                    newPkRedView.updateData(mDataShowBeans, false, 3)
+//                    newPkBlueView.updateData(mDataShowBeans, false, 3)
                     // myMqttService!!.setTask(false)
                 }
                 ADD_DATA -> {
@@ -128,6 +151,14 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                         if (!hasExsit) {
                             mDataShowBeans.add(addDevice)
                         }
+//                        if(addDevice.pkTeam == 2){
+//
+//                            newPkRedView.insertItem(addDevice,mRedDataShowBeans.size-1)
+//                        }else{
+//                            newPkBlueView.insertItem(addDevice,mRedDataShowBeans.size-1)
+//                        }
+
+
                         // heartresult_view.insertItem(mAddList.poll(), mDataShowBeans.size - 1)
                         // myMqttService!!.setTask(false)
                     }
@@ -136,7 +167,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 REMOVE_DATA -> {
                     reMoveList.forEach {
                         //removemAddList.add(mDataShowBeans[it])
-                        //heartresult_view.removeItem(it)
+                       // heartresult_view.removeItem(it)
                     }
                     // myMqttService!!.setTask(false)
                 }
@@ -194,6 +225,16 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             back()
         }
 
+        val redGridLayout = GridLayoutManager(instance,2)
+        newPkRedRYView.layoutManager = redGridLayout
+        redAdapter = NewPkAdapter(instance,mRedCurrentShowBeans)
+        newPkRedRYView.adapter = redAdapter
+        newPkRedRYView.itemAnimator
+
+        val blueGridLayout = GridLayoutManager(instance,2)
+        newPkBlueRyView.layoutManager = blueGridLayout
+        blueAdapter = NewPkAdapter(instance,mBlueCurrentShowBeans)
+        newPkBlueRyView.adapter = blueAdapter
 
     }
 
@@ -240,7 +281,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     var winGroup = "0"
     fun upgradeCourseData() {
         mCurrentDownTimer?.cancel()
-        Logger.e("upgradeCourseData--------------------------------------")
+        Logger.e(tags,"upgradeCourseData--------------------------------------")
         if (endTime != 0L) {
             endTime = System.currentTimeMillis()
         }
@@ -406,7 +447,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
         //开始的时间
         //查询用户信息
         doCommonHRTask(sources)
-        Logger.e("doCommonHRTask", sn + "secondMap=" + secondMap.size)
+        Logger.e(tags, sn + "secondMap=" + secondMap.size)
         //最新1秒钟的数据，1秒内接收到的所有设备的所有心率 已经获取到心率数据和用户数据的 map
         var key = ""
         var pkMode = 0
@@ -463,7 +504,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
                 Log.e("heartRate", "" + heartRate + "precent=" + precent)
                 //计算每一分钟的数据
-                if (dataShowBean!!.allHrList.size == 60 / Constant.REFRESH_RATE) {
+                if (dataShowBean!!.allHrList.size == 10 / Constant.REFRESH_RATE) {
                     dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
                     dataShowBean!!.allHrList.clear()
                     var minHr = 0
@@ -503,13 +544,51 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                         cal = 0.0
                     }
                     dataShowBean!!.cal = cal
+
+                    dataShowBean!!.point = userInfo?.let { it1 ->
+                        MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
+                            dataShowBean!!.calAllHrList)
+                    }!!
                 }
             } else {
                 dataShowBean = DevicesDataShowBean()
+
+                //判断是否已经再线过
+                val isSaved = BaseApp.recordHashData.containsKey(key)
+                if(isSaved){
+                    dataShowBean!!.joinTime = BaseApp.recordHashData[key]?.joinTime
+
+                    //掉线时间
+                    dataShowBean!!.time = BaseApp.recordHashData[key]?.time!!
+                    dataShowBean!!.cal = BaseApp.recordHashData[key]?.cal!!
+                    //平均心率强度
+                    dataShowBean!!.averageHeartPercent = BaseApp.recordHashData[key]?.averageHeartPercent!!
+                    dataShowBean!!.precent = BaseApp.recordHashData[key]?.precent!!
+                    var precent2 = HeartRateConvertUtils.hearRate2Percent(
+                        heartRate,
+                        HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                    ).toInt()
+                    dataShowBean!!.addStageHeart(key,precent2)
+                    BaseApp.recordHashData[key]?.let { it1 -> dataShowBean!!.allHrList.addAll(it1.allHrList) }
+
+                    val courseList = BaseApp.recordHashData[key]?.getmDatas()
+                    dataShowBean!!.setmDatas(courseList)
+
+                }else{
+                    dataShowBean!!.joinTime = System.currentTimeMillis()
+                    dataShowBean!!.cal = cal
+                    dataShowBean!!.addStageHeart(key, 0)
+                    dataShowBean!!.time = heartRateBean!!.time
+                    //设置课程id
+                    dataShowBean!!.precent = HeartRateConvertUtils.hearRate2Percent(
+                        heartRate,
+                        HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
+                    ).toInt().toString()
+                }
                 dataShowBean!!.sortType = Constant.TYPE_DEF
                 dataShowBean!!.pkTeam = pkMode
                 dataShowBean!!.age = age
-                dataShowBean!!.joinTime = System.currentTimeMillis()
+
                 dataShowBean!!.weight = weight
                 dataShowBean!!.sex = gander
                 if (userInfo != null) {
@@ -523,14 +602,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 if (cal < 0) {
                     cal = 0.0
                 }
-                dataShowBean!!.cal = cal
-                dataShowBean!!.addStageHeart(key, 0)
-                dataShowBean!!.time = heartRateBean!!.time
-                //设置课程id
-                dataShowBean!!.precent = HeartRateConvertUtils.hearRate2Percent(
-                    heartRate,
-                    HeartRateConvertUtils.getMaxHeartRate(age).toDouble()
-                ).toInt().toString()
+
                 //保存SN
                 AllocationApi.getAllSNSet().add(key)
                 mAddList.offer(dataShowBean)
@@ -545,14 +617,14 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             tv_man_count.setText(getString(R.string.people, "" + dataSize))
         })
 
-        Logger.e("doCommonHRTask", sn + "dataSize=" + dataSize)
+        Logger.e(tags, sn + "dataSize=" + dataSize)
         //需要对数据进行分类
         if (dataSize > 0) {
 
             intervalTime += Constant.REFRESH_RATE
-            Logger.e("doCommonHRTask", "doHallTask-----------")
+            Logger.e(tags, "doHallTask-----------")
             doHallTask()
-            Logger.e("doCommonHRTask", "dealPkData-----------")
+            Logger.e(tags, "dealPkData-----------")
             CacheDataUtil.saveCourseUserBean(mDataShowBeans)
             dealPkData()
             /* if (intervalTime * Constant.REFRESH_RATE % 10 != 0) {
@@ -566,6 +638,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     var redSumCal = 0.0
     var blueSumCal = 0.0
 
+    //红队的经验值
+    var redExperience = 0.0
+    //蓝队的经验值
+    private var blueExperience = 0.0
+
     fun dealPkData() {
 
         var size = mDataShowBeans.size / 10
@@ -575,7 +652,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
         mTotalPage = size
         setDotView(true, currentPage - 1)
         Logger.e(
-            "doCommonHRTask",
+            tags,
             sn + "dealPkData=" + mRedDataShowBeans.size + "mBlueDataShowBeans=" + mBlueDataShowBeans.size + ",redSumCal=" + redSumCal + "blueSumCal=" + blueSumCal
         )
 
@@ -589,48 +666,78 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             mRedCurrentShowBeans.clear()
             mBlueCurrentShowBeans.clear()
 
-            var startRedIndex = (currentPage - 1) * 5
-            var endRedIndex = currentPage * 5
-            if (endRedIndex >= mRedDataShowBeans.size) {
-                endRedIndex = mRedDataShowBeans.size
-            }
-            for (i in startRedIndex until endRedIndex) {
-                mRedCurrentShowBeans.add(mRedDataShowBeans.get(i))
-            }
-            var startBlueIndex = (currentPage - 1) * 5
-            var endBlueIndex = currentPage * 5
-            if (endBlueIndex >= mBlueDataShowBeans.size) {
-                endBlueIndex = mBlueDataShowBeans.size
-            }
-            for (i in startBlueIndex until endBlueIndex) {
-                mBlueCurrentShowBeans.add(mBlueDataShowBeans.get(i))
-            }
-            for (i in 0 until mRedCurrentShowBeans.size) {
-                redViewlist.get(i)!!.visibility = View.VISIBLE
-                redViewlist.get(i)!!.updateAllData(mRedCurrentShowBeans.get(i))
-            }
-            for (i in 0 until mBlueCurrentShowBeans.size) {
-                blueViewList.get(i)!!.visibility = View.VISIBLE
-                blueViewList.get(i)!!.updateAllData(mBlueCurrentShowBeans.get(i))
-            }
+            mRedCurrentShowBeans.addAll(mRedDataShowBeans)
+            mBlueCurrentShowBeans.addAll(mBlueDataShowBeans)
+
+//            var startRedIndex = (currentPage - 1) * 5
+//            var endRedIndex = currentPage * 5
+//            if (endRedIndex >= mRedDataShowBeans.size) {
+//                endRedIndex = mRedDataShowBeans.size
+//            }
+//            for (i in startRedIndex until endRedIndex) {
+//                mRedCurrentShowBeans.add(mRedDataShowBeans.get(i))
+//            }
+//            var startBlueIndex = (currentPage - 1) * 5
+//            var endBlueIndex = currentPage * 5
+//            if (endBlueIndex >= mBlueDataShowBeans.size) {
+//                endBlueIndex = mBlueDataShowBeans.size
+//            }
+//            for (i in startBlueIndex until endBlueIndex) {
+//                mBlueCurrentShowBeans.add(mBlueDataShowBeans.get(i))
+//            }
+//            for (i in 0 until mRedCurrentShowBeans.size) {
+//                redViewlist.get(i)!!.visibility = View.VISIBLE
+//                redViewlist.get(i)!!.updateAllData(mRedCurrentShowBeans.get(i))
+//            }
+//            for (i in 0 until mBlueCurrentShowBeans.size) {
+//                blueViewList.get(i)!!.visibility = View.VISIBLE
+//                blueViewList.get(i)!!.updateAllData(mBlueCurrentShowBeans.get(i))
+//            }
 
             Logger.e(
-                "doCommonHRTask",
-                sn + "mRedCurrentShowBeans=" + mRedCurrentShowBeans.size + "mBlueCurrentShowBeans=" + mBlueCurrentShowBeans.size
+                tags,
+                sn + "mRedCurrentShowBeans=" + Gson().toJson(mRedCurrentShowBeans) + "mBlueCurrentShowBeans=" + Gson().toJson(mBlueCurrentShowBeans)
             )
+
+            mRedCurrentShowBeans.sortBy {
+                it.joinTime
+            }
+
+            mBlueCurrentShowBeans.sortBy {
+                it.joinTime
+            }
+
+            blueAdapter?.notifyDataSetChanged()
+            redAdapter?.notifyDataSetChanged()
 
             tv_red_cal.setText(HeartRateConvertUtils.doubleParseStr(redSumCal));
             tv_blue_cal.setText(HeartRateConvertUtils.doubleParseStr(blueSumCal));
+
+
             var redIntSumCal = redSumCal.toInt();
             var blueIntSumCal = blueSumCal.toInt();
             var sumcal = redIntSumCal + blueIntSumCal;
             if (redIntSumCal == blueIntSumCal) {
                 view_progress.max = 100
                 view_progress.progress = 50
+
+                new_pk_progress.max = 100
+                new_pk_progress.progress = 50
+
             } else {
                 view_progress.max = sumcal
                 view_progress.progress = redIntSumCal
+
+                new_pk_progress.max = sumcal
+                new_pk_progress.progress = redIntSumCal
             }
+
+
+            newPkRedProgressTv.text = redExperience.toString()
+            newPkBlueProgressTv.text = blueExperience.toString()
+
+            newPkAllCalTv.text = "消耗卡路里"+"\n"+Arith.add(redExperience,blueExperience)
+
             //进度条更新
             for (i in mRedCurrentShowBeans.size until 5) {
                 redViewlist.get(i)!!.visibility = View.INVISIBLE
@@ -647,6 +754,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     var sn = ""
     var hrValue = 0
 
+    private var recordHeartList = CopyOnWriteArrayList<Int>()
     @SuppressLint("LongLogTag")
     private fun doCommonHRTask(sources: ConcurrentHashMap<String, Int>) {
 
@@ -662,20 +770,38 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 if (UserContans.userInfoHashMap.containsKey(sn)) {
                     //这里有两个逻辑，一个是红队的用户，一个蓝队的用户  数据选择选择了就不要弄了
                     var select = UserContans.userInfoHashMap.get(sn)!!.isSelect
-                    Logger.e("doCommonHRTask", sn + "select=+" + select)
+                    Logger.e(tags, sn + "select=+" + select)
                     if (select) {
+
+                        //判断是否是已经存在过，即已经上过课程，中途给停掉课程，再次上课
+                        val isExist = BaseApp.recordHashData.containsKey(sn)
+
+
+
                         val secondHeartRateBean: SecondHeartRateBean =
                             if (UserContans.secondHeartRateBeanHashMap.containsKey(sn)) {
                                 UserContans.secondHeartRateBeanHashMap.get(sn)!!
                             } else {
                                 SecondHeartRateBean()
                             }
+
+
+                        if(isExist){
+                            recordHeartList.clear()
+
+                            BaseApp.recordHashData[sn]?.let { it1 ->
+                                recordHeartList.addAll(it1.allHrList) }
+                            recordHeartList.add(hrValue)
+                            secondHeartRateBean.heartList.addAll(recordHeartList)
+                        }else{
+                            secondHeartRateBean.heartList.add(hrValue)
+                        }
+
                         //接收到的所有心率数据
                         secondHeartRateBean.devicesSN = sn
-                        secondHeartRateBean.heartList.add(hrValue)
                         secondHeartRateBean.heart = hrValue
                         secondHeartRateBean.isTask = false
-                        secondHeartRateBean.time = UserContans.mSnHrTime.get(sn)!!
+                        secondHeartRateBean.time = if(isExist) BaseApp.recordHashData[sn]?.joinTime!! else UserContans.mSnHrTime[sn]!!
                         //接收到的数据的时间戳
                         UserContans.secondHeartRateBeanHashMap.put(sn, secondHeartRateBean)
 
@@ -690,6 +816,8 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
             }
         }
+
+        Log.e(tags,"--------处理完成的secondMap="+Gson().toJson(secondMap))
         //这里需要
         secondMap.clear()
         secondMap.putAll(UserContans.secondHeartRateBeanHashMap)
@@ -710,8 +838,6 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     private fun doHallTask() {
 
         try {
-
-
             //判断设备是否掉线，掉线的移除
             val currentTime = System.currentTimeMillis()
             //  var isRemove = false
@@ -728,9 +854,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 if (dropBean.pkTeam == Constant.MODE_PK_RED) {
                     redSumCal += dropBean.cal
                     mRedDataShowBeans.add(dropBean)
+                    redExperience = Arith.add(redExperience,dropBean.point)
                 } else {
                     blueSumCal += dropBean.cal
                     mBlueDataShowBeans.add(dropBean)
+                    blueExperience = Arith.add(redExperience,dropBean.point)
                 }
 
                 //已经掉线，直接移除
@@ -990,18 +1118,14 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
     //取消sn标签
     private fun markSnListData(){
-
+        if(mRedDataShowBeans.isEmpty())
+            return
         val para = HashMap<String,List<String>>()
 
         //遍历集合，得到已经选择的用户
         val selectList = emptyList<String>()
         val unSelectList = arrayListOf<String>()
-
-
-
         Log.e(tags,"--------真实的="+Gson().toJson(mRedDataShowBeans)+" "+Gson().toJson(mBlueDataShowBeans))
-
-
 
         for(index in 0 until mRedDataShowBeans.size ){
             Log.e(tags,"----红队="+mRedDataShowBeans[index].devicesSN)

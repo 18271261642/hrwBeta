@@ -15,6 +15,7 @@ import com.blankj.utilcode.util.ToastUtils
 import com.google.gson.Gson
 import com.jkcq.hrwtv.R
 import com.jkcq.hrwtv.configure.Constant
+import com.jkcq.hrwtv.heartrate.bean.User
 import com.jkcq.hrwtv.heartrate.bean.UserBean
 import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.BaseResponse
@@ -28,6 +29,7 @@ import com.jkcq.hrwtv.wu.newversion.adapter.UserSelectAdapter.Isecelt
 import com.jkcq.hrwtv.wu.newversion.adapter.UserSelectItemDecoration
 import com.jkcq.hrwtv.wu.newversion.bean.SelectUserBean
 import com.jkcq.hrwtv.wu.obsever.AddUseObservable
+import com.tencent.bugly.crashreport.biz.UserInfoBean
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_flash.*
@@ -136,6 +138,7 @@ class UserSelectActivity : AppCompatActivity(), Observer {
             finish()
         }
 
+
         courseAllSelectLayout.setOnClickListener {
             if(mCourseDatas.isEmpty()){
                 ToastUtils.showShort("请选择上课用户")
@@ -198,25 +201,27 @@ class UserSelectActivity : AppCompatActivity(), Observer {
             }
             mALlData.forEach {
                 if (UserContans.userInfoHashMap.containsKey(it.value.sn)) {
-                    var ben = UserContans.userInfoHashMap.get(it.value.sn)
+                    val ben = UserContans.userInfoHashMap.get(it.value.sn)
                     ben!!.isSelect = it.value.isSelect
-                    ben!!.currentMod = it.value.currentMod
-                    if (ben!!.isSelect && ben!!.currentMod == Constant.MODE_PK_BLUE) {
+                    ben.currentMod = it.value.currentMod
+                    if (ben.isSelect && ben.currentMod == Constant.MODE_PK_BLUE) {
                         blueCount++
-                    } else if (ben!!.isSelect && ben!!.currentMod == Constant.MODE_PK_RED) {
+                    } else if (ben.isSelect && ben.currentMod == Constant.MODE_PK_RED) {
                         redCount++
                     }
-                    if (ben!!.isSelect) {
+                    if (ben.isSelect) {
                         seletCount++
                     }
                 }
             }
 
             CacheDataUtil.saveUserMap()
-            if (firstCome) {
 
-                markSnListData()
-
+            markSnListData(firstCome)
+//            if (firstCome) {
+//
+//              //  markSnListData(firstCome)
+//
 //                when (currentMode) {
 //                    Constant.MODE_COURSE -> {    //选择完成后去课程模式页面
 //                        startActivity(
@@ -235,8 +240,10 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 //                        )
 //                    }
 //                }
-            }
-          //  finish()
+//
+//
+//            }
+//            finish()
         }
     }
 
@@ -266,10 +273,19 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         fl_sure.nextFocusRightId = R.id.fl_sure
         fl_sure.nextFocusUpId = R.id.fl_sure
 
+        fl_sure.nextFocusLeftId = R.id.courseAllSelectLayout
+
         if (currentMode == Constant.MODE_COURSE) {
-            fl_sure.nextFocusLeftId = R.id.fl_back
-            fl_back.nextFocusUpId = R.id.fl_back
-            fl_back.nextFocusRightId = R.id.fl_sure
+
+            fl_back.nextFocusRightId = R.id.courseAllSelectLayout
+            courseAllSelectLayout.nextFocusRightId = R.id.fl_sure
+            fl_sure.nextFocusLeftId = R.id.courseAllSelectLayout
+            fl_sure.nextFocusRightId = R.id.fl_back
+//
+//            fl_sure.nextFocusLeftId = R.id.fl_back
+//            fl_back.nextFocusUpId = R.id.fl_back
+//            fl_back.nextFocusRightId = R.id.fl_sure
+
 
             layout_red.visibility = View.GONE
             layout_blue.visibility = View.GONE
@@ -315,17 +331,20 @@ class UserSelectActivity : AppCompatActivity(), Observer {
     fun getAllData() {
         mALlData.clear()
         UserContans.userInfoHashMap.forEach {
-            mALlData.put(
-                it.value.sn,
-                SelectUserBean(
+            if(UserContans.markTagsMap.isEmpty() || !UserContans.markTagsMap.containsKey(it.key)){
+                mALlData.put(
                     it.value.sn,
-                    it.value.nickname,
-                    it.value.avatar,
-                    it.value.currentMod,
-                    it.value.isSelect,
-                    it.value.joinTime
+                    SelectUserBean(
+                        it.value.sn,
+                        it.value.nickname,
+                        it.value.avatar,
+                        it.value.currentMod,
+                        it.value.isSelect,
+                        it.value.joinTime
+                    )
                 )
-            )
+            }
+
         }
     }
 
@@ -337,6 +356,8 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         sumBlue = 0
         mAdapter.setCurrentMode(currentMode)
         mCourseDatas.clear()
+
+
         mALlData.forEach {
             Log.e(
                 "getUsers",
@@ -405,7 +426,8 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         }
         Log.e("getUsers", "getUsers----" + mCourseDatas.size)
         mCourseDatas.sortBy { Constant.TYPE_CAL }
-        mAdapter.replaceData(mCourseDatas)
+       // mAdapter.replaceData(mCourseDatas)
+        mAdapter.notifyDataSetChanged()
         calNumberCount()
         var size = mCourseDatas.size / 12
         if (mCourseDatas.size % 12 != 0) {
@@ -504,33 +526,101 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         }
     }
 
+    var tmpUserList = ConcurrentHashMap<String,UserBean>()
+
+
     fun updateuserInfo() {
 
-        //  mALlData.clear()
+          mALlData.clear()
+        Log.e(tags,"-----已经包含的用户数据="+UserContans.userInfoHashMap.toString()+"\n"+"已打标签="+UserContans.markTagsMap.toString())
 
-        Log.e(
-            "AddUseObservable",
-            "addUserNotify2 userInfoHashMap" + UserContans.userInfoHashMap.size
-        )
-        UserContans.userInfoHashMap.forEach {
+        val saveUserList = UserContans.userInfoHashMap
 
-            if (!mALlData.containsKey(it.key)) {
-                mALlData.put(
-                    it.key,
-                    SelectUserBean(
-                        it.value.sn,
-                        it.value.nickname,
-                        it.value.avatar,
-                        it.value.currentMod,
-                        it.value.isSelect,
-                        it.value.joinTime
-                    )
-                )
-            }
+        //网络获取已打标签数据，每10s获取一次
+        val netMarkTags = UserContans.markTagsMap;
 
+        //自己本地保存的保存的打标签的集合
+        var localMarkTags = UserContans.privateMarkTagsMap;
+
+
+        //去除已经打标签的，
+        saveUserList.forEach {
+            tmpUserList[it.key] = it.value
         }
-        Log.e("AddUseObservable", "addUserNotify3")
-        getUsers()
+
+        if(netMarkTags.isNotEmpty()){
+            netMarkTags.forEach {
+                tmpUserList.remove(it.key)
+            }
+        }
+
+        if(localMarkTags.isNotEmpty()){
+            saveUserList.forEach {
+                if(localMarkTags.containsKey(it.key))
+                    tmpUserList[it.key] = it.value
+
+            }
+        }
+
+
+        Log.e(tags, "------已经处理完的集合=$tmpUserList")
+
+
+        tmpUserList.forEach {
+
+            mALlData.put(
+                it.key,
+                SelectUserBean(
+                    it.value.sn,
+                    it.value.nickname,
+                    it.value.avatar,
+                    it.value.currentMod,
+                    it.value.isSelect,
+                    it.value.joinTime
+                )
+            )
+
+//            if (!mALlData.containsKey(it.key)) {
+//
+//                mALlData.put(
+//                    it.key,
+//                    SelectUserBean(
+//                        it.value.sn,
+//                        it.value.nickname,
+//                        it.value.avatar,
+//                        it.value.currentMod,
+//                        it.value.isSelect,
+//                        it.value.joinTime
+//                    )
+//                )
+//            }
+//
+        }
+            Log.e("AddUseObservable", "addUserNotify3")
+            getUsers()
+
+
+    }
+
+
+
+    private fun dropUserHall(){
+        //已经打标签的集合
+        var mTagsMap = UserContans.markTagsMap;
+
+        if(mCourseDatas.isEmpty())
+            return
+        //遍历已有的学员，已经被其它打标签的下线
+        mCourseDatas.forEach {
+
+            //自己打标签的数据
+            UserContans.privateMarkTagsMap
+
+            //所有打标签的数据
+            UserContans.markTagsMap
+        }
+
+
     }
 
 
@@ -549,25 +639,28 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
 
 
+    private fun markSnListData(isDump : Boolean){
 
-    private fun markSnListData(){
-
-        var para = HashMap<String,List<String>>()
+        val para = HashMap<String,List<String>>()
 
         //遍历集合，得到已经选择的用户
-        var selectList = arrayListOf<String>()
-        var unSelectList = emptyList<String>()
+        val selectList = arrayListOf<String>()
+        val unSelectList = arrayListOf<String>()
 
+        if(mALlData.isEmpty())
+            return
         mALlData.forEach { (t: String, u: SelectUserBean) ->
             if(mALlData.get(t)?.isSelect == true){
                 selectList.add(t)
+            }else{
+                unSelectList.add(t)
             }
         }
 
         para["markList"] = selectList
         para["unmarkList"] = unSelectList
 
-        Log.e(tags,"------c参数="+para.toString())
+        //Log.e(tags,"------c参数="+para.toString())
         val requestBody: RequestBody =
             RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
         RetrofitHelper.service.markSnActiveTags(requestBody)
@@ -577,9 +670,7 @@ class UserSelectActivity : AppCompatActivity(), Observer {
                 override fun onSuccess(t: BaseResponse<Boolean>?) {
                     if (t != null) {
                         Log.e(tags,"---是否成功="+t.data)
-                        t.data?.let { t.msg?.let { it1 -> intentActivity(it, it1,selectList) } }
-
-
+                        t.data?.let { t.msg?.let { it1 -> intentActivity(isDump,it, it1,selectList) } }
                     }
                 }
 
@@ -590,7 +681,7 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
     }
 
-    private fun intentActivity(isTag: Boolean,msg : String,markList : List<String>){
+    private fun intentActivity(isDump : Boolean,isTag: Boolean,msg : String,markList : List<String>){
         if(!isTag){
             ToastUtils.showShort(msg)
             return
@@ -599,6 +690,13 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         //打标签成功后把已经打完标签的存入临时集合，大厅模式不上线
         markList.forEach {
             UserContans.markTagsMap[it.toString()] = -1
+            UserContans.privateMarkTagsMap[it.toString()] = -1
+        }
+
+
+        if(!isDump){
+            finish()
+            return
         }
 
         when (currentMode) {
@@ -617,6 +715,14 @@ class UserSelectActivity : AppCompatActivity(), Observer {
                         NPkActivity::class.java
                     )
                 )
+
+//
+//                startActivity(
+//                    Intent(
+//                        this@UserSelectActivity,
+//                        NewPkActivity::class.java
+//                    )
+//                )
             }
         }
 

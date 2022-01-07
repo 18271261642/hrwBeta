@@ -47,6 +47,9 @@ class CourseSelectActivity : AppCompatActivity() {
         UserContans.userInfoHashMap.forEach {
             it.value.isSelect = false
         }
+
+        //重新获取课程信息
+        getHeartRateClass()
     }
 
     //计算当前的position在第第几页
@@ -142,18 +145,22 @@ class CourseSelectActivity : AppCompatActivity() {
     }
 
     fun initEvent() {
-
-        fl_back.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                fl_back.setBackgroundResource(R.drawable.shape_btn_selected_bg)
-            } else {
-                fl_back.setBackgroundResource(R.drawable.shape_btn_unselected_bg)
+        try {
+            fl_back.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    fl_back.setBackgroundResource(R.drawable.shape_btn_selected_bg)
+                } else {
+                    fl_back.setBackgroundResource(R.drawable.shape_btn_unselected_bg)
+                }
             }
+            fl_back.setOnClickListener {
+                finish()
+            }
+            fl_back.requestFocus()
+        }catch (e : Exception){
+            e.printStackTrace()
         }
-        fl_back.setOnClickListener {
-            finish()
-        }
-        fl_back.requestFocus()
+
     }
 
     /**
@@ -169,9 +176,12 @@ class CourseSelectActivity : AppCompatActivity() {
          )*/
     }
 
+
+
+
     fun initData() {
 
-        getHeartRateClass()
+
     }
 
     fun getHeartRateClass() {

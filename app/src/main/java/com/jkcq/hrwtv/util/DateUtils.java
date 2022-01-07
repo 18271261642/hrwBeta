@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -652,7 +653,7 @@ public class DateUtils {
     public static String getCurrentDate(String format) {
         String curDateTime = null;
         try {
-            SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat(format);
+            SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat(format, Locale.CHINA);
             Calendar c = new GregorianCalendar();
             curDateTime = mSimpleDateFormat.format(c.getTime());
 
@@ -661,6 +662,22 @@ public class DateUtils {
         }
         return curDateTime;
     }
+
+
+
+
+
+    public static String getFormatData(long time){
+        try {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA);
+            return simpleDateFormat.format(new Date(time));
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
 
     public static String second2Min(int second){

@@ -118,7 +118,7 @@
                     android:text="消耗卡路里"
 
                     android:textColor="@color/white"
-                    android:textSize="@dimen/sp15"></TextView>
+                    android:textSize="@dimen/sp15" />
 
                 <com.jkcq.hrwtv.ui.view.BebasNeueTextView
                     android:id="@+id/tv_pk_time"
@@ -129,7 +129,7 @@
                     android:text="00:44:59"
                     android:visibility="gone"
                     android:textColor="@color/white"
-                    android:textSize="@dimen/size_21"></com.jkcq.hrwtv.ui.view.BebasNeueTextView>
+                    android:textSize="@dimen/size_21"/>
 
 
                 <com.jkcq.hrwtv.ui.view.BebasNeueTextView
@@ -141,7 +141,7 @@
                     android:drawableLeft="@mipmap/icon_pk_result_red"
                     android:text="0"
                     android:textColor="@color/white"
-                    android:textSize="42sp"></com.jkcq.hrwtv.ui.view.BebasNeueTextView>
+                    android:textSize="42sp" />
 
                 <com.jkcq.hrwtv.ui.view.BebasNeueTextView
                     android:id="@+id/tv_blue_cal"
@@ -153,7 +153,7 @@
                     android:drawableRight="@mipmap/icon_pk_result_blue"
                     android:text="0"
                     android:textColor="@color/white"
-                    android:textSize="42sp"></com.jkcq.hrwtv.ui.view.BebasNeueTextView>
+                    android:textSize="42sp"/>
 
                 <ImageView
                     android:layout_width="wrap_content"
@@ -178,7 +178,7 @@
 
             <View
                 android:layout_width="@dimen/dp10"
-                android:layout_height="1dp"></View>
+                android:layout_height="1dp"/>
         </LinearLayout>
 
         <RelativeLayout
