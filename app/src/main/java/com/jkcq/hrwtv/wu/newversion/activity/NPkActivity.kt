@@ -55,6 +55,7 @@ import kotlinx.android.synthetic.main.layout_course_select.ll_point
 import kotlinx.android.synthetic.main.ninclude_title.*
 import okhttp3.MediaType
 import okhttp3.RequestBody
+import java.text.DecimalFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -70,6 +71,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
     private val tags = "NPkActivity"
 
+    private val decimalFormat = DecimalFormat("#.##")
 
     var mToken: String by Preference(Preference.token, "")
     var mbrandName: String by Preference(Preference.brandName, "")
@@ -125,7 +127,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             super.handleMessage(msg)
             when (msg.what) {
                 UPDATE_HALL -> {
-
+                    mDataShowBeans.forEach {
+                        if(!BaseApp.recordHashData.containsKey(it.devicesSN)){
+                            BaseApp.recordHashData[it.devicesSN] = it
+                        }
+                    }
                     Log.e(tags,"-----UPDATE_HALL="+mDataShowBeans.size)
                     //原意是只更新改变的数据，但实际上更新了所有数据
 //                    newPkRedView.updateData(mDataShowBeans, false, 3)
@@ -165,9 +171,12 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
                 }
                 REMOVE_DATA -> {
+                    Log.e(tags,"------移除="+Gson().toJson(reMoveList))
                     reMoveList.forEach {
                         //removemAddList.add(mDataShowBeans[it])
                        // heartresult_view.removeItem(it)
+                        if(it<mDataShowBeans.size)
+                            mDataShowBeans.removeAt(it)
                     }
                     // myMqttService!!.setTask(false)
                 }
@@ -504,7 +513,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
                 Log.e("heartRate", "" + heartRate + "precent=" + precent)
                 //计算每一分钟的数据
-                if (dataShowBean!!.allHrList.size == 10 / Constant.REFRESH_RATE) {
+                if (dataShowBean!!.allHrList.size == 30 / Constant.REFRESH_RATE) {
                     dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
                     dataShowBean!!.allHrList.clear()
                     var minHr = 0
@@ -545,10 +554,17 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                     }
                     dataShowBean!!.cal = cal
 
-                    dataShowBean!!.point = userInfo?.let { it1 ->
-                        MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
+                    Log.e(tags,"-----30s计算一次="+Gson().toJson(dataShowBean!!.calAllHrList))
+
+                    val heartPoint = dataShowBean!!.point;
+                    var compPoint = 0.0
+                    if(userInfo != null){
+                        //计算的经验值
+                        compPoint =   MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, userInfo!!.age,
                             dataShowBean!!.calAllHrList)
-                    }!!
+                    }
+                    dataShowBean!!.point = Arith.add(heartPoint,compPoint)
+                    Log.e(tags,"-------计算的经验值="+compPoint+" 原有的经验值="+heartPoint+" 总的="+dataShowBean!!.point)
                 }
             } else {
                 dataShowBean = DevicesDataShowBean()
@@ -666,8 +682,27 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             mRedCurrentShowBeans.clear()
             mBlueCurrentShowBeans.clear()
 
+//            mRedCurrentShowBeans = mRedDataShowBeans
+//            mBlueCurrentShowBeans = mBlueDataShowBeans
+
             mRedCurrentShowBeans.addAll(mRedDataShowBeans)
             mBlueCurrentShowBeans.addAll(mBlueDataShowBeans)
+            redExperience = 0.0
+            //计算红队的经验值
+            mRedCurrentShowBeans.forEach {
+                val redPoint = it.point;
+
+               // redExperience = Arith.add(redExperience,redPoint)
+
+                redExperience = Arith.add(redExperience,redPoint)
+            }
+
+            blueExperience = 0.0
+            //计算蓝队的经验值
+            mBlueCurrentShowBeans.forEach {
+                val bluePoint = it.point
+                blueExperience = Arith.add(blueExperience,it.point)
+            }
 
 //            var startRedIndex = (currentPage - 1) * 5
 //            var endRedIndex = currentPage * 5
@@ -714,9 +749,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             tv_blue_cal.setText(HeartRateConvertUtils.doubleParseStr(blueSumCal));
 
 
-            var redIntSumCal = redSumCal.toInt();
-            var blueIntSumCal = blueSumCal.toInt();
+            var redIntSumCal = redExperience.toInt();
+            var blueIntSumCal = blueExperience.toInt();
             var sumcal = redIntSumCal + blueIntSumCal;
+
+
             if (redIntSumCal == blueIntSumCal) {
                 view_progress.max = 100
                 view_progress.progress = 50
@@ -726,17 +763,17 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
             } else {
                 view_progress.max = sumcal
-                view_progress.progress = redIntSumCal
+                view_progress.progress = redExperience.toInt()
 
                 new_pk_progress.max = sumcal
-                new_pk_progress.progress = redIntSumCal
+                new_pk_progress.progress = redExperience.toInt()
             }
 
 
-            newPkRedProgressTv.text = redExperience.toString()
-            newPkBlueProgressTv.text = blueExperience.toString()
+            newPkRedProgressTv.text = HeartRateConvertUtils.doubleParseStr(redExperience)
+            newPkBlueProgressTv.text = HeartRateConvertUtils.doubleParseStr(blueExperience)
 
-            newPkAllCalTv.text = "消耗卡路里"+"\n"+Arith.add(redExperience,blueExperience)
+            newPkAllCalTv.text = "经验值"+"\n"+HeartRateConvertUtils.doubleParseStr(Arith.add(redExperience,blueExperience))
 
             //进度条更新
             for (i in mRedCurrentShowBeans.size until 5) {
@@ -854,11 +891,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
                 if (dropBean.pkTeam == Constant.MODE_PK_RED) {
                     redSumCal += dropBean.cal
                     mRedDataShowBeans.add(dropBean)
-                    redExperience = Arith.add(redExperience,dropBean.point)
+                  //  redExperience = Arith.add(redExperience,dropBean.point)
                 } else {
                     blueSumCal += dropBean.cal
                     mBlueDataShowBeans.add(dropBean)
-                    blueExperience = Arith.add(redExperience,dropBean.point)
+                  //  blueExperience = Arith.add(redExperience,dropBean.point)
                 }
 
                 //已经掉线，直接移除
@@ -953,7 +990,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             autoDialogView = ShowEmptyDialog(instance)
             autoDialogView!!.show()
             autoDialogView!!.setShowTime(3 * 1000)
-            autoDialogView!!.setContentTvTxt("挑战结束")
+            autoDialogView!!.setContentTvTxt("PK结束")
             autoDialogView!!.setOnEmptyDialogListener {
                 autoDialogView!!.dismiss()
                 //完成后自动结束课程
@@ -1120,6 +1157,8 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
     private fun markSnListData(){
         if(mRedDataShowBeans.isEmpty())
             return
+        //取消累计记录
+        BaseApp.recordHashData.clear()
         val para = HashMap<String,List<String>>()
 
         //遍历集合，得到已经选择的用户
@@ -1128,13 +1167,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
         Log.e(tags,"--------真实的="+Gson().toJson(mRedDataShowBeans)+" "+Gson().toJson(mBlueDataShowBeans))
 
         for(index in 0 until mRedDataShowBeans.size ){
-            Log.e(tags,"----红队="+mRedDataShowBeans[index].devicesSN)
            unSelectList.add(mRedDataShowBeans[index].devicesSN)
         }
 
         for(index in 0 until mBlueDataShowBeans.size){
             unSelectList.add(mBlueDataShowBeans[index].devicesSN)
-            Log.e(tags,"---蓝队队="+mBlueDataShowBeans[index].devicesSN)
         }
 
         para["markList"] = selectList

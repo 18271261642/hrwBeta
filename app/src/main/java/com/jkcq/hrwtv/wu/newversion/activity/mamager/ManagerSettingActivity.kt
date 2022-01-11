@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.text.TextUtils
 import android.util.Log
 import android.view.View
 import com.beyondworlds.managersetting.ApkDownLoadManager
@@ -60,6 +61,7 @@ class ManagerSettingActivity : AppCompatActivity(), ManagerMainView,
     private val mHandler = Handler()
     private var isGetClub = false
     private var mActPresenter: ManagerSettingPresenter? = null
+
 
     private val clickListener =
         OnDialogClickListener { type ->
@@ -168,6 +170,9 @@ class ManagerSettingActivity : AppCompatActivity(), ManagerMainView,
         layout_clear_cache.setOnClickListener(this)
         tv_exit.setOnClickListener(this)
         ll_manager_state.setOnClickListener(this)
+
+
+        tv_club_name.text = if(!TextUtils.isEmpty(mclubName)) "注册门店: $mclubName" else "--"
     }
 
     override fun onClick(v: View) {

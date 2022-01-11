@@ -1,5 +1,6 @@
 package com.jkcq.hrwtv.wu.newversion.adapter
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import com.jkcq.hrwtv.util.LoadImageUtil
 import com.jkcq.hrwtv.wu.newversion.view.CircleImageView
 import com.jkcq.hrwtv.wu.newversion.view.CourseMatchView
 import kotlinx.android.synthetic.main.activity_course_sort.*
+import java.util.stream.Collectors
 
 class CourseResultAdapter(
     private val mContext: Context,
@@ -66,6 +68,7 @@ class CourseResultAdapter(
     }
 
 
+    @SuppressLint("NewApi")
     fun sortDataAndResetView(sortType: Int) {
         when (sortType) {
             EventConstant.SORT_DATA_CAL -> {
@@ -73,9 +76,12 @@ class CourseResultAdapter(
             }
             EventConstant.SORT_DATA_POINT -> {
                 mDatas = mDatas.sortedByDescending { it.point }
+
             }
             EventConstant.SORT_DATA_MATCH -> {
                 mDatas = mDatas.sortedByDescending { it.matchRate }
+
+
             }
             EventConstant.SORT_DATA_HR -> {
                 mDatas = mDatas.sortedByDescending { it.averageHeartRate }

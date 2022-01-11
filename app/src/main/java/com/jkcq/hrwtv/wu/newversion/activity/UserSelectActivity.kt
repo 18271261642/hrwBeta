@@ -531,13 +531,12 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
     fun updateuserInfo() {
 
-          mALlData.clear()
         Log.e(tags,"-----已经包含的用户数据="+UserContans.userInfoHashMap.toString()+"\n"+"已打标签="+UserContans.markTagsMap.toString())
 
         val saveUserList = UserContans.userInfoHashMap
 
         //网络获取已打标签数据，每10s获取一次
-        val netMarkTags = UserContans.markTagsMap;
+        //val netMarkTags = UserContans.markTagsMap;
 
         //自己本地保存的保存的打标签的集合
         var localMarkTags = UserContans.privateMarkTagsMap;
@@ -548,26 +547,26 @@ class UserSelectActivity : AppCompatActivity(), Observer {
             tmpUserList[it.key] = it.value
         }
 
-        if(netMarkTags.isNotEmpty()){
-            netMarkTags.forEach {
-                tmpUserList.remove(it.key)
-            }
-        }
+//        if(netMarkTags.isNotEmpty()){
+//            netMarkTags.forEach {
+//                tmpUserList.remove(it.key)
+//            }
+//        }
 
-        if(localMarkTags.isNotEmpty()){
-            saveUserList.forEach {
-                if(localMarkTags.containsKey(it.key))
-                    tmpUserList[it.key] = it.value
-
-            }
-        }
+//        if(localMarkTags.isNotEmpty()){
+//            saveUserList.forEach {
+//                if(localMarkTags.containsKey(it.key))
+//                    tmpUserList[it.key] = it.value
+//
+//            }
+//        }
 
 
         Log.e(tags, "------已经处理完的集合=$tmpUserList")
 
 
         tmpUserList.forEach {
-
+            if(!mALlData.containsKey(it.key))
             mALlData.put(
                 it.key,
                 SelectUserBean(

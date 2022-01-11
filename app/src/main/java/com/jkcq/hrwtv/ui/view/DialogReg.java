@@ -3,6 +3,7 @@ package com.jkcq.hrwtv.ui.view;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -14,6 +15,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.beyondworlds.managersetting.OnDialogClickListener;
+import com.beyondworlds.managersetting.OnNotRegisterListener;
+import com.beyondworlds.managersetting.PreferenceUtil;
 import com.blankj.utilcode.util.ToastUtils;
 import com.jkcq.hrwtv.R;
 import com.jkcq.hrwtv.app.BaseApp;
@@ -34,6 +38,16 @@ public class DialogReg extends Dialog {
     public OnClickShowView onClickShowView;
     private LinearLayout layout_brand_id, layout_club_id, layout_accout, layout_pwd;
     private EditText et_accout, et_pwd;
+
+    private OnNotRegisterListener onNotRegisterListener;
+
+    public void setOnNotRegisterListener(OnNotRegisterListener onNotRegisterListener) {
+        this.onNotRegisterListener = onNotRegisterListener;
+    }
+
+    public DialogReg(@NonNull Context context) {
+        super(context);
+    }
 
     public DialogReg(Context context, OnClickShowView onClickShowView) {
         this(context, R.style.BaseDialog, onClickShowView);
@@ -179,7 +193,7 @@ public class DialogReg extends Dialog {
      * @param pwd
      */
 
-    private void regDevice(String userName, String pwd) {
+    public void regDevice(String userName, String pwd) {
         if (TextUtils.isEmpty(userName)) {
             ToastUtils.showShort("用户名不能为空");
             return;
@@ -202,6 +216,8 @@ public class DialogReg extends Dialog {
                     public void onSuccess(BaseResponse<TokenBean> baseResponse) {
                         LogUtil.e("baseResponse=" + baseResponse.getMsg());
                         ToastUtils.showLong("注册成功");
+                        PreferenceUtil.getInstance().putString("user_name",userName);
+                        PreferenceUtil.getInstance().putString("user_pwd",pwd);
                         hideDialog(true, baseResponse.getData().getToken());
                         //  EventBus.getDefault().post(new TypeEvent(EventConstant.EVENT_LOGIN, ""));
                     }
@@ -209,6 +225,47 @@ public class DialogReg extends Dialog {
                     @Override
                     public void dealError(String msg) {
                         ToastUtils.showLong(msg);
+                    }
+                });
+
+    }
+
+
+
+    public void regDevice(String userName, String pwd,OnNotRegisterListener onNotRegisterListener) {
+        if (TextUtils.isEmpty(userName)) {
+            ToastUtils.showShort("用户名不能为空");
+            return;
+        }
+        if (TextUtils.isEmpty(pwd)) {
+            ToastUtils.showShort("密码不能为空");
+            return;
+        }
+
+        HashMap<String, String> para = new HashMap<>();
+        para.put("password", pwd);
+        para.put("type", "0");
+        para.put("username", userName);
+        para.put("mac", DeviceUtil.getMac(BaseApp.getApp()));
+        RetrofitHelper.INSTANCE.getNoAuthservice().deviceRegister(para)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseObserver<BaseResponse<TokenBean>>() {
+                    @Override
+                    public void onSuccess(BaseResponse<TokenBean> baseResponse) {
+                        LogUtil.e("baseResponse=" + baseResponse.getMsg());
+                        ToastUtils.showLong("注册成功");
+                        PreferenceUtil.getInstance().putString("user_name",userName);
+                        PreferenceUtil.getInstance().putString("user_pwd",pwd);
+                        hideDialog(true, baseResponse.getData().getToken());
+                        //  EventBus.getDefault().post(new TypeEvent(EventConstant.EVENT_LOGIN, ""));
+                    }
+
+                    @Override
+                    public void dealError(String msg) {
+                        ToastUtils.showLong(msg);
+                        if(onNotRegisterListener != null)
+                            onNotRegisterListener.notRegister();
                     }
                 });
 

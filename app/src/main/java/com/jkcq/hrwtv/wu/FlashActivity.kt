@@ -7,6 +7,8 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
+import com.beyondworlds.managersetting.OnNotRegisterListener
+import com.beyondworlds.managersetting.PreferenceUtil
 import com.blankj.utilcode.util.TimeUtils
 import com.google.gson.Gson
 import com.jkcq.hrwtv.AllocationApi
@@ -35,6 +37,7 @@ import com.jkcq.hrwtv.wu.obsever.AddUseObservable
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
 import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.BaseResponse
+import com.jkcq.hrwtv.service.OperateUserSnService
 import com.jkcq.hrwtv.test.TestOne
 import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import com.jkcq.hrwtv.wu.newversion.activity.*
@@ -94,6 +97,10 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
         AllocationApi.getAllSNSet().clear()
         UserContans.clearMap()
         Log.e("onResume", "isReg" + isReg)
+
+
+        doAgainRegister()
+
         if (isReg) {
             mActPresenter?.getClubInfo()
         } else {
@@ -104,6 +111,23 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
         unMarkTags()
     }
 
+    var dialogReg : DialogReg ?=null
+
+    private fun doAgainRegister(){
+        if(dialogReg == null)
+            dialogReg = DialogReg(this)
+        val uName = PreferenceUtil.getInstance().getString("user_name")
+        val uPwd = PreferenceUtil.getInstance().getString("user_pwd")
+        if(!TextUtils.isEmpty(uName) && !TextUtils.isEmpty(uPwd)){
+            dialogReg!!.regDevice(uName,uPwd
+            ) {
+               // clearReClub()
+                isReg = false
+                ToastUtils.showToast(instance,"账号被禁用，请重新登录!")
+                showRegDialog() }
+        }
+
+    }
 
 
     private fun unMarkTags(){
@@ -288,7 +312,10 @@ class FlashActivity : BaseMVPActivity<FlashContract.FlashView, FlashPresenter>()
 
 
         tv_name.setOnLongClickListener {
-            startActivity(Intent(this@FlashActivity, NewPkActivity::class.java))
+           // startActivity(Intent(this@FlashActivity, NewPkActivity::class.java))
+            val intent = Intent();
+            intent.action = OperateUserSnService.CLEAR_SM_MARK_ACTION
+            sendBroadcast(intent)
             return@setOnLongClickListener true
         }
     }

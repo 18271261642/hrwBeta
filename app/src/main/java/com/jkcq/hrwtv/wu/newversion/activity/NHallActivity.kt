@@ -24,10 +24,7 @@ import com.jkcq.hrwtv.http.bean.CourseList
 import com.jkcq.hrwtv.http.bean.CourseUserInfo
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.ui.view.DialogYesOrNo
-import com.jkcq.hrwtv.util.CacheDataUtil
-import com.jkcq.hrwtv.util.DoubleClickUtil
-import com.jkcq.hrwtv.util.HeartRateConvertUtils
-import com.jkcq.hrwtv.util.Logger
+import com.jkcq.hrwtv.util.*
 import com.jkcq.hrwtv.wu.newversion.view.HeartResultView
 import com.jkcq.hrwtv.wu.obsever.HrDataObservable
 import com.jkcq.hrwtv.wu.util.MatchUtils
@@ -344,7 +341,7 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
                     dataShowBean!!.addStageHeart(key, precent)
                     dataShowBean!!.setAllHrList(heartRate)
                     //计算每一分钟的数据 60  改成30S计算一次
-                    if (dataShowBean!!.allHrList.size == 10 / Constant.REFRESH_RATE) {
+                    if (dataShowBean!!.allHrList.size == 30 / Constant.REFRESH_RATE) {
                         dataShowBean!!.calAllHrList = dataShowBean!!.allHrList
                         dataShowBean!!.allHrList.clear()
                         var minHr = 0
@@ -397,13 +394,17 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
                         Log.e(tags,"-----30s计算一次="+Gson().toJson(dataShowBean!!.calAllHrList))
 
-                        var heartPoint = dataShowBean!!.point;
+                        val heartPoint = dataShowBean!!.point;
+                        var compPoint = 0.0
                         if(userInfo != null){
-                            dataShowBean!!.point = userInfo?.let { it1 ->
-                                MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
-                                    dataShowBean!!.calAllHrList)
-                            }!!
+                            //计算的经验值
+                             compPoint =   MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, userInfo!!.age,
+                                dataShowBean!!.calAllHrList)
+
+
                         }
+                        dataShowBean!!.point = Arith.add(heartPoint,compPoint)
+                        Log.e(tags,"-------计算的经验值="+compPoint+" 原有的经验值="+heartPoint+" 总的="+dataShowBean!!.point)
 
                     }
 
@@ -484,7 +485,23 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
             if (!UserContans.userInfoHashMap.containsKey(sn)) {
                 if (!UserContans.mCacheMap.containsKey(sn)) {
                     //1.查询用户信息
-                }
+//                        for (i in 0 until mDataShowBeans.size){
+//                            if(sn.equals(mDataShowBeans[i])){
+//                                reMoveList.add(i)
+//                            }
+//                        }
+//
+//                        isRemove = true
+//                        //清除SN码的值
+//                        //清除
+//                        UserContans.mSnHrMap.remove(sn)
+//                        UserContans.mSnHrTime.remove(sn)
+//                        UserContans.mCacheMap.remove(sn)
+//                        UserContans.secondHeartRateBeanHashMap.remove(sn)
+//                        AllocationApi.getAllSNSet().remove(sn)
+//                        mHandler.sendEmptyMessage(REMOVE_DATA)
+                    }
+
             } else {
 
                 if(hrValue != -1){
@@ -538,7 +555,7 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
             if (mDataShowBeans.size == 0)
                 return
             for (i in 0 until mDataShowBeans.size) {
-                val dropBean = mDataShowBeans[i] ?: return;
+                val dropBean = mDataShowBeans[i]
                 //已经掉线，直接移除
                 sn = dropBean.devicesSN
                 if(UserContans.mSnHrTime.containsKey(sn)){
@@ -547,10 +564,11 @@ class NHallActivity : AbsNewHeartResultActivity(), MainActivityView {
 
 
                 // || (isDrop && UserContans.markTagsMap.containsKey(sn))
-                if (currentTime - time >= Constant.DROP_TIME || (isDrop && UserContans.markTagsMap.containsKey(sn)) ) {
+                if (currentTime - time >= Constant.DROP_TIME || (isDrop && UserContans.markTagsMap.containsKey(sn))) {
                     if (UserContans.userInfoHashMap.containsKey(dropBean.devicesSN)) {
                         UserContans.userInfoHashMap.remove(dropBean.devicesSN);
                     }
+                    Log.e(tags, "--------掉线移除------=$dropBean")
                     isRemove = true
                     reMoveList.add(i)
                     //清除SN码的值

@@ -468,10 +468,17 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
                         }
                         dataShowBean!!.cal = cal
 
-                        dataShowBean!!.point = userInfo?.let { it1 ->
-                            MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, it1.age,
+                        Log.e(tags,"-----30s计算一次="+Gson().toJson(dataShowBean!!.calAllHrList))
+
+                        val heartPoint = dataShowBean!!.point;
+                        var compPoint = 0.0
+                        if(userInfo != null){
+                            //计算的经验值
+                            compPoint =   MatchUtils.matchHeartPoint(if(userInfo?.sex.equals("1")) 0 else 1, userInfo!!.age,
                                 dataShowBean!!.calAllHrList)
-                        }!!
+                        }
+                        dataShowBean!!.point = Arith.add(heartPoint,compPoint)
+                        Log.e(tags,"-------计算的经验值="+compPoint+" 原有的经验值="+heartPoint+" 总的="+dataShowBean!!.point)
                     }
                 }
             } else {

@@ -1,5 +1,7 @@
 package com.jkcq.hrwtv.wu.newversion.activity
 
+import android.os.Build
+import android.support.annotation.RequiresApi
 import android.support.v7.widget.LinearLayoutManager
 import android.view.View
 import android.view.ViewGroup
@@ -23,6 +25,7 @@ import com.jkcq.hrwtv.util.TimeUtil
 import com.jkcq.hrwtv.wu.manager.Preference
 import com.jkcq.hrwtv.wu.newversion.NewPagingScrollHelper
 import com.jkcq.hrwtv.wu.newversion.adapter.CourseResultAdapter
+import com.jkcq.hrwtv.wu.newversion.adapter.CourseResultAdapterJava
 import kotlinx.android.synthetic.main.activity_course_sort.*
 import kotlinx.android.synthetic.main.activity_course_sort.tv_course_name
 import kotlinx.android.synthetic.main.include_head_course_sort.*
@@ -30,6 +33,9 @@ import kotlinx.android.synthetic.main.layout_heartresult_view.view.*
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 
+/**
+ * 课程结束后的展示排序页面
+ */
 class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(),
     CourseResultView, View.OnFocusChangeListener {
 
@@ -38,7 +44,7 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
     var mDataShowBeans = CopyOnWriteArrayList<DevicesDataShowBean>()
     private var mCheckIndex = 0;
     private var isReset = true;
-    lateinit var mAdapter: CourseResultAdapter
+    lateinit var mAdapter: CourseResultAdapterJava
 
     override fun onDestroy() {
         super.onDestroy()
@@ -46,16 +52,17 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
         mDataShowBeans.clear()
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun initView() {
         rl_img_back.setOnClickListener {
             finish()
         }
         mDataShowBeans.addAll(CacheDataUtil.sUploadHeartData)
         rv_sort_result.layoutManager = LinearLayoutManager(this)
-        mAdapter = CourseResultAdapter(this, mDataShowBeans)
+        mAdapter = CourseResultAdapterJava(this, mDataShowBeans)
         rv_sort_result.adapter = mAdapter
 
-        mAdapter.sortDataAndResetView(EventConstant.SORT_DATA_CAL)
+        mAdapter.sortDataAndResetView(EventConstant.SORT_DATA_POINT)
 
     }
 
@@ -234,6 +241,7 @@ class CourseSortActivity : BaseMVPActivity<MainActivityView, MainActivityPresent
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onFocusChange(v: View, hasFocus: Boolean) {
         var view = v as TextView
         if (!hasFocus) {

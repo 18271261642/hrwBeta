@@ -152,6 +152,7 @@ class PkResultActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter
             lowerTeam(Constant.PK_RED)
         }
         rv_sort_result.layoutManager = LinearLayoutManager(this)
+
         mAdapter = PKResultAdapter(this, data)
         rv_sort_result.adapter = mAdapter
     }

@@ -1,7 +1,10 @@
 package com.jkcq.hrwtv.service;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -21,6 +24,8 @@ import com.jkcq.hrwtv.wu.obsever.HrDataObservable;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +33,11 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.concurrent.ConcurrentHashMap;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
 
 
 /**
@@ -37,6 +46,9 @@ import io.reactivex.schedulers.Schedulers;
 public class OperateUserSnService extends Service implements Observer{
 
     private static final String TAG = "OperateUserSnService";
+
+
+    public static final String CLEAR_SM_MARK_ACTION = "com.jkcq.hrwtv.service.clear_mark";
 
     //用户存放ANT发送过来的sn码
     private final StringBuffer stringBuffer = new StringBuffer();
@@ -47,7 +59,9 @@ public class OperateUserSnService extends Service implements Observer{
     public void onCreate() {
         super.onCreate();
         HrDataObservable.getInstance().addObserver(this);
+        registerReceiver(broadcastReceiver,new IntentFilter(CLEAR_SM_MARK_ACTION));
     }
+
 
 
     @Override
@@ -65,6 +79,7 @@ public class OperateUserSnService extends Service implements Observer{
     public void onDestroy() {
         super.onDestroy();
         HrDataObservable.getInstance().deleteObserver(this);
+        unregisterReceiver(broadcastReceiver);
     }
 
     //刷新时间，每10S刷新一次
@@ -166,6 +181,7 @@ public class OperateUserSnService extends Service implements Observer{
 
                                @Override
                                public void onSuccess(BaseResponse<List<UserBean>> listBaseResponse) {
+                                   Log.e(TAG,"-----onSuccess=null="+(listBaseResponse == null));
                                    if(listBaseResponse != null)
                                     Log.e(TAG,"-------数据返回="+listBaseResponse.getData().size()+"\n"+new Gson().toJson(listBaseResponse));
                                    assert listBaseResponse != null;
@@ -175,11 +191,13 @@ public class OperateUserSnService extends Service implements Observer{
                                @Override
                                public void onError(Throwable e) {
                                    super.onError(e);
+                                   Log.e(TAG,"-----onError="+e.getMessage());
                                }
 
                                @Override
                                public void dealError(String msg) {
                                    super.dealError(msg);
+                                   Log.e(TAG,"-----dealError="+msg);
                                }
                            }
                 );
@@ -201,10 +219,12 @@ public class OperateUserSnService extends Service implements Observer{
                     UserContans.mCacheMap.put(userBean.getSn(), userBean.getSn());
 
                 }else{
-                    UserContans.userInfoHashMap.remove(userBean.getSn());
-                    UserContans.mCacheMap.remove(userBean.getSn());
+//                    UserContans.userInfoHashMap.remove(userBean.getSn());
+//                    UserContans.mCacheMap.remove(userBean.getSn());
                 }
             }
+
+            Log.e(TAG,"-----------每10S处理完后的数据="+UserContans.userInfoHashMap.toString());
 
             CacheDataUtil.saveUserMap();
 
@@ -222,6 +242,49 @@ public class OperateUserSnService extends Service implements Observer{
             return OperateUserSnService.this;
         }
     }
+
+    //取消sn的标签
+    private void markSnListData(){
+        if(UserContans.markTagsMap.isEmpty())
+            return;
+        List<String> selectList = new ArrayList<>();
+        List<String> unSelectList = new ArrayList<>();
+        for(Map.Entry<String,Integer> mmp :  UserContans.markTagsMap.entrySet()){
+            unSelectList.add(mmp.getKey());
+        }
+
+        Map<String,List<String>> para = new HashMap<>();
+        para.put("markList",selectList);
+        para.put("unmarkList",unSelectList);
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json"), new Gson().toJson(para));
+        RetrofitHelper.INSTANCE.getService().markSnActiveTags(requestBody)
+                .subscribeOn(Schedulers.io())
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .subscribe(new BaseObserver<BaseResponse<Boolean>>() {
+                    @Override
+                    public void onSuccess(BaseResponse<Boolean> booleanBaseResponse) {
+                        if(booleanBaseResponse.getData() != null && booleanBaseResponse.getData())
+                            UserContans.markTagsMap.clear();
+
+                    }
+                });
+
+    }
+
+
+
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if(action == null)
+                return;
+            if(action.equals(CLEAR_SM_MARK_ACTION)){
+                markSnListData();
+            }
+        }
+    };
+
 
 
 }

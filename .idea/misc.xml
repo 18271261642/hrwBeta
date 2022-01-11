@@ -21,11 +21,13 @@
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res/layout/include_course_bottom.xml" value="0.4" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res/layout/include_new_pk_progress_layout.xml" value="0.2" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res/layout/item_pk_layout.xml" value="0.20414462081128748" />
+        <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/activity_manager_main_layout.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/include_course_select_title.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/item_course_select1.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/item_course_sort.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/item_heartrate1.xml" value="0.2269021739130435" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/item_heartrate4.xml" value="0.6" />
+        <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/item_pk_result.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/layout_course_select.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/layout_heartresult_view.xml" value="0.20414462081128748" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/app/src/main/res_new/layout/ninclude_title.xml" value="0.20414462081128748" />
@@ -33,6 +35,9 @@
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/base/src/main/res/drawable/shape_btn_cheak_stroke.xml" value="0.246875" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/base/src/main/res/drawable/shape_btn_white_20_radio_15_bg.xml" value="0.25" />
         <entry key="..\:/StudioWorkPlace/BO/hrwBeta/managersetting/src/main/res/layout/dialog_cheack_version.xml" value="0.20414462081128748" />
+        <entry key="..\:/StudioWorkPlace/BO/hrwBeta/managersetting/src/main/res/layout/dialog_login.xml" value="0.20414462081128748" />
+        <entry key="..\:/StudioWorkPlace/BO/hrwBeta/managersetting/src/main/res/layout/dialog_network_layout.xml" value="0.20414462081128748" />
+        <entry key="..\:/StudioWorkPlace/BO/hrwBeta/managersetting/src/main/res/layout/dialog_user_alone_reg_layout.xml" value="0.20414462081128748" />
         <entry key="..\:/xjkcq/hrwUsedAlone/hrwBeta/app/src/main/res/drawable/btn_pk_blue_selector.xml" value="0.4708333333333333" />
         <entry key="..\:/xjkcq/hrwUsedAlone/hrwBeta/app/src/main/res/layout/activity_course_select.xml" value="0.3099647266313933" />
         <entry key="..\:/xjkcq/hrwUsedAlone/hrwBeta/app/src/main/res/layout/activity_course_sort.xml" value="0.3099647266313933" />

@@ -120,9 +120,9 @@ public class MainActivityModelImp extends BasePresenterModel<MainActivityView> i
 
             ArrayList<Integer> tempMinList = new ArrayList<>();
             for (int i = 0; i < size; i++) {
-                sum += srcBean.getMinHrList().get(i);
-                len++;
                 if (srcBean.getMinHrList().get(i) > 30) {
+                    sum += srcBean.getMinHrList().get(i);
+                    len++;
                     tempMinList.add(srcBean.getMinHrList().get(i));
                 }
             }
@@ -213,11 +213,11 @@ public class MainActivityModelImp extends BasePresenterModel<MainActivityView> i
         DevicesDataShowBean bean = null;
         for (int i = 0; i < redlist.size(); i++) {
             bean = redlist.get(i);
-            bean.setSortType(Constant.TYPE_CAL);
+            bean.setSortType(Constant.TYPE_POINT);
         }
         for (int i = 0; i < bluelist.size(); i++) {
             bean = bluelist.get(i);
-            bean.setSortType(Constant.TYPE_CAL);
+            bean.setSortType(Constant.TYPE_POINT);
         }
         Collections.sort(redlist);
         Collections.sort(bluelist);

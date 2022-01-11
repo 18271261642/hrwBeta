@@ -10,13 +10,13 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/shape_btn_unselected_bg"></View>
+        android:background="@drawable/shape_btn_unselected_bg"/>
 
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        android:src="@mipmap/bg_user_alone_manage_pwd"></ImageView>
+        android:src="@mipmap/bg_user_alone_manage_pwd"/>
 
     <TextView
         android:id="@+id/tv_title"
@@ -48,7 +48,7 @@
             android:text="@string/pwd"
             android:textColor="#FFFFFF"
             android:textSize="@dimen/sp15"
-            android:textStyle="bold"></TextView>
+            android:textStyle="bold"/>
 
         <EditText
             android:id="@+id/et_pwd"
@@ -89,7 +89,7 @@
         <View
             android:layout_width="0dp"
             android:layout_height="@dimen/dp10"
-            android:layout_weight="1"></View>
+            android:layout_weight="1"/>
 
         <TextView
             android:id="@+id/btn_sure"
