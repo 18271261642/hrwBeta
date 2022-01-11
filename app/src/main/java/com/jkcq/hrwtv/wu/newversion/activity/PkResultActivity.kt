@@ -79,8 +79,9 @@ class PkResultActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter
         }
 
 
-
-
+//        mDataShowBeans.sort(Comparator.comparing { obj: DevicesDataShowBean -> obj.averageHeartRate }
+//            .reversed().thenComparing { obj: DevicesDataShowBean -> obj.point }.reversed())
+        mDataShowBeans.sortByDescending { it.point }
         mDataShowBeans.forEach {
             if (it.pkTeam == winTeam) {
                 data.add(PKValueEntity(it))

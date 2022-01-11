@@ -9,7 +9,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.jkcq.hrwtv.R
-import com.jkcq.hrwtv.app.BaseApp
 import com.jkcq.hrwtv.base.mvp.BaseMVPActivity
 import com.jkcq.hrwtv.eventBean.EventConstant
 import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean
@@ -20,16 +19,13 @@ import com.jkcq.hrwtv.http.bean.CourseInfo
 import com.jkcq.hrwtv.service.UserContans
 import com.jkcq.hrwtv.util.CacheDataUtil
 import com.jkcq.hrwtv.util.LogUtil
-import com.jkcq.hrwtv.util.ThreadPoolUtils
 import com.jkcq.hrwtv.util.TimeUtil
 import com.jkcq.hrwtv.wu.manager.Preference
 import com.jkcq.hrwtv.wu.newversion.NewPagingScrollHelper
-import com.jkcq.hrwtv.wu.newversion.adapter.CourseResultAdapter
 import com.jkcq.hrwtv.wu.newversion.adapter.CourseResultAdapterJava
 import kotlinx.android.synthetic.main.activity_course_sort.*
 import kotlinx.android.synthetic.main.activity_course_sort.tv_course_name
 import kotlinx.android.synthetic.main.include_head_course_sort.*
-import kotlinx.android.synthetic.main.layout_heartresult_view.view.*
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 

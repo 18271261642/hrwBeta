@@ -148,7 +148,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
 
     //课程模式
     override fun uploadAllDataSuccess() {
-
+        BaseApp.recordHashData.clear()
         //跳转到结果页面
         startActivity(Intent(this, CourseSortActivity::class.java))
         finish()
@@ -193,7 +193,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
             override fun onButtonClickSure() {
                 UserContans.isPause = true;
                 mCurrentDownTimer?.cancel()
-
+                BaseApp.recordHashData.clear()
                 //取消标记
                 markSnListData(true)
               //  finish()
@@ -297,7 +297,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     /**
      * 系统的一个广播，每分钟会发送一个广播
      */
-    var mTimeReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+    private var mTimeReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_TIME_TICK) {
                 updateTime()
@@ -308,6 +308,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
     /**
      * 更新标题栏的时间显示
      */
+    @SuppressLint("SetTextI18n")
     private fun updateTime() {
         val calendar = Calendar.getInstance()
         tv_time.setText(
@@ -320,6 +321,7 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
 
     override fun onDestroy() {
         super.onDestroy()
+        BaseApp.recordHashData.clear()
         mCurrentDownTimer?.cancel()
         HrDataObservable.getInstance().deleteObserver(this)
         unregisterReceiver(mTimeReceiver)
@@ -503,6 +505,9 @@ class NCourseActivity : AbsNewHeartResultActivity(), MainActivityView {
 
                     val courseList = BaseApp.recordHashData[key]?.getmDatas()
                     dataShowBean!!.setmDatas(courseList)
+
+                    //经验值
+                    dataShowBean!!.point = BaseApp.recordHashData[key]?.point!!
 
                 }else{
                     dataShowBean!!.joinTime = System.currentTimeMillis()

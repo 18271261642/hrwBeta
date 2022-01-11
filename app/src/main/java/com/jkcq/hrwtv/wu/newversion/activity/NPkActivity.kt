@@ -254,6 +254,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             }
 
             override fun onButtonClickSure() {
+                BaseApp.recordHashData.clear()
                 UserContans.isPause = true;
                 mCurrentDownTimer?.cancel()
                 finish()
@@ -773,7 +774,8 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
             newPkRedProgressTv.text = HeartRateConvertUtils.doubleParseStr(redExperience)
             newPkBlueProgressTv.text = HeartRateConvertUtils.doubleParseStr(blueExperience)
 
-            newPkAllCalTv.text = "经验值"+"\n"+HeartRateConvertUtils.doubleParseStr(Arith.add(redExperience,blueExperience))
+            //+"\n"+HeartRateConvertUtils.doubleParseStr(Arith.add(redExperience,blueExperience)
+            newPkAllCalTv.text = "经验值"
 
             //进度条更新
             for (i in mRedCurrentShowBeans.size until 5) {
@@ -1155,10 +1157,11 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
     //取消sn标签
     private fun markSnListData(){
-        if(mRedDataShowBeans.isEmpty())
-            return
         //取消累计记录
         BaseApp.recordHashData.clear()
+        if(mRedDataShowBeans.isEmpty())
+            return
+
         val para = HashMap<String,List<String>>()
 
         //遍历集合，得到已经选择的用户

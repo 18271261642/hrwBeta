@@ -173,11 +173,12 @@ public class HallAdapter extends RecyclerView.Adapter<HallAdapter.MyViewHolder> 
         }
         Log.e("setMatchPercentCourse", "info.getCal()" + info.getCal() + "point" + point + ",info.getTotalCount()=" + info.getTotalCount() + ",info.getMatchCount=" + info.getMatchCount() + "type=" + type + ", CacheDataUtil.mCurrentRange=" + CacheDataUtil.mCurrentRange);
         info.setMatchRate(info.getMatchCount() * 100 / info.getTotalCount());
-        point = HeartRateConvertUtils.hearRate2Point(
-                info.getCal(),
-                Constant.MODE_COURSE,
-                info.getMatchCount() * 100 / info.getTotalCount()
-        );
+//        point = HeartRateConvertUtils.hearRate2Point(
+//                info.getCal(),
+//                Constant.MODE_COURSE,
+//                info.getMatchCount() * 100 / info.getTotalCount()
+//        );
+        point = info.getPoint();
         info.setPoint(point);
         holder.tv_point.setText(HeartRateConvertUtils.doubleParseStr(point));
 

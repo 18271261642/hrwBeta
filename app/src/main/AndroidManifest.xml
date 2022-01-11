@@ -71,7 +71,7 @@
         </activity>
 
         <activity android:name="com.jkcq.hrwtv.wu.newversion.activity.NewPkActivity"/>
-        <activity android:name="test.TestPKActivity"/>
+
 
         <activity android:name=".test.TestOne"/>
 

@@ -659,7 +659,7 @@ class UserSelectActivity : AppCompatActivity(), Observer {
         para["markList"] = selectList
         para["unmarkList"] = unSelectList
 
-        //Log.e(tags,"------c参数="+para.toString())
+        Log.e(tags,"------c参数="+para.toString())
         val requestBody: RequestBody =
             RequestBody.create(MediaType.parse("application/json"), Gson().toJson(para))
         RetrofitHelper.service.markSnActiveTags(requestBody)
@@ -688,8 +688,14 @@ class UserSelectActivity : AppCompatActivity(), Observer {
 
         //打标签成功后把已经打完标签的存入临时集合，大厅模式不上线
         markList.forEach {
-            UserContans.markTagsMap[it.toString()] = -1
-            UserContans.privateMarkTagsMap[it.toString()] = -1
+            if(UserContans.markTagsMap.containsKey(it.toString())){
+                UserContans.markTagsMap[it.toString()] = -1
+                UserContans.privateMarkTagsMap[it.toString()] = -1
+            }else{
+                UserContans.markTagsMap.remove(it.toString())
+                UserContans.privateMarkTagsMap.remove(it.toString())
+            }
+
         }
 
 

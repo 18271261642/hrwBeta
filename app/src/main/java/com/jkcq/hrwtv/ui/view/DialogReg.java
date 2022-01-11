@@ -254,7 +254,7 @@ public class DialogReg extends Dialog {
                     @Override
                     public void onSuccess(BaseResponse<TokenBean> baseResponse) {
                         LogUtil.e("baseResponse=" + baseResponse.getMsg());
-                        ToastUtils.showLong("注册成功");
+                       // ToastUtils.showLong("注册成功");
                         PreferenceUtil.getInstance().putString("user_name",userName);
                         PreferenceUtil.getInstance().putString("user_pwd",pwd);
                         hideDialog(true, baseResponse.getData().getToken());

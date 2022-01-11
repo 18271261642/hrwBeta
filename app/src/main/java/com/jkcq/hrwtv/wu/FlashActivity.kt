@@ -1,13 +1,11 @@
 package com.jkcq.hrwtv.wu
 
 import android.content.*
-import android.os.Build
 import android.os.IBinder
 import android.text.TextUtils
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import com.beyondworlds.managersetting.OnNotRegisterListener
 import com.beyondworlds.managersetting.PreferenceUtil
 import com.blankj.utilcode.util.TimeUtils
 import com.google.gson.Gson
@@ -38,7 +36,6 @@ import com.jkcq.hrwtv.wu.obsever.HrDataObservable
 import com.jkcq.hrwtv.http.RetrofitHelper
 import com.jkcq.hrwtv.http.bean.BaseResponse
 import com.jkcq.hrwtv.service.OperateUserSnService
-import com.jkcq.hrwtv.test.TestOne
 import com.jkcq.hrwtv.ui.view.ShowEmptyDialog
 import com.jkcq.hrwtv.wu.newversion.activity.*
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -51,7 +48,6 @@ import kotlinx.android.synthetic.main.activity_ncourse.*
 import kotlinx.android.synthetic.main.ninclude_title.*
 import okhttp3.MediaType
 import okhttp3.RequestBody
-import test.TestPKActivity
 import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*

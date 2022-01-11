@@ -28,6 +28,7 @@ public class MatchUtils {
              //计算最大心率
              int maxHeart = matchMaxHeart(sex,age);
 
+             //每个心率点对应的心率强度
              int[] strengthRand = new int[heartList.size()];
              //集合
              for(int i = 0;i<heartList.size();i++){

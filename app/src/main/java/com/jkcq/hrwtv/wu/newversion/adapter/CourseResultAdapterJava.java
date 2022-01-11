@@ -5,12 +5,14 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
 import com.jkcq.hrwtv.R;
 import com.jkcq.hrwtv.eventBean.EventConstant;
 import com.jkcq.hrwtv.heartrate.bean.DevicesDataShowBean;
@@ -29,6 +31,8 @@ import java.util.stream.Collectors;
  * Date 2022/1/11
  */
 public class CourseResultAdapterJava extends RecyclerView.Adapter<CourseResultAdapterJava.MyViewHolder> {
+
+    private static final String TAG = "CourseResultAdapterJava";
 
     private Context mContext;
     private List<DevicesDataShowBean> mDatas;
@@ -74,7 +78,7 @@ public class CourseResultAdapterJava extends RecyclerView.Adapter<CourseResultAd
 
     @Override
     public int getItemCount() {
-        return 0;
+        return mDatas.size();
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
@@ -113,29 +117,43 @@ public class CourseResultAdapterJava extends RecyclerView.Adapter<CourseResultAd
         tmpList.clear();
         switch (sortType) {
             case EventConstant.SORT_DATA_CAL:
-                List<DevicesDataShowBean> calList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getCal).
-                        thenComparing(DevicesDataShowBean::getMatchRate).thenComparing(DevicesDataShowBean::getAverageHeartRate)).collect(Collectors.toList());
-                tmpList.addAll(calList);
+
+                mDatas.sort(Comparator.comparing(DevicesDataShowBean::getCal).reversed().thenComparing(DevicesDataShowBean::getPoint).reversed());
+
+                Log.e(TAG,"------卡路里排序="+new Gson().toJson(mDatas));
+//
+//                List<DevicesDataShowBean> calList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getCal).
+//                        thenComparing(DevicesDataShowBean::getMatchRate).thenComparing(DevicesDataShowBean::getAverageHeartRate)).collect(Collectors.toList());
+//                tmpList.addAll(calList);
                 break;
             case EventConstant.SORT_DATA_POINT:
-                List<DevicesDataShowBean> pointList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getPoint).
-                        thenComparing(DevicesDataShowBean::getMatchRate)).collect(Collectors.toList());
-                tmpList.addAll(pointList);
+
+                mDatas.sort(Comparator.comparing(DevicesDataShowBean::getPoint).reversed().thenComparing(DevicesDataShowBean::getMatchRate).reversed());
+                Log.e(TAG,"------经验值排序="+new Gson().toJson(mDatas));
+//                List<DevicesDataShowBean> pointList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getPoint).
+//                        thenComparing(DevicesDataShowBean::getMatchRate)).collect(Collectors.toList());
+//                tmpList.addAll(pointList);
                 break;
             case EventConstant.SORT_DATA_MATCH:
-                List<DevicesDataShowBean> matchList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getMatchRate).
-                        thenComparing(DevicesDataShowBean::getPoint)).collect(Collectors.toList());
-                tmpList.addAll(matchList);
+                mDatas.sort(Comparator.comparing(DevicesDataShowBean::getMatchRate).reversed().thenComparing(DevicesDataShowBean::getPoint).reversed());
+                Log.e(TAG,"------匹配度排序="+new Gson().toJson(mDatas));
+//                List<DevicesDataShowBean> matchList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getMatchRate).
+//                        thenComparing(DevicesDataShowBean::getPoint)).collect(Collectors.toList());
+//                tmpList.addAll(matchList);
                 break;
             case EventConstant.SORT_DATA_HR:
             case EventConstant.SORT_DATA_HR_STRENGTH:
-                List<DevicesDataShowBean> hrList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getAverageHeartRate).
-                        thenComparing(DevicesDataShowBean::getPoint)).collect(Collectors.toList());
-                tmpList.addAll(hrList);
+
+                mDatas.sort(Comparator.comparing(DevicesDataShowBean::getAverageHeartRate).reversed().thenComparing(DevicesDataShowBean::getPoint).reversed());
+                Log.e(TAG,"-----心率强度排序="+new Gson().toJson(mDatas));
+
+//                List<DevicesDataShowBean> hrList = mDatas.stream().sorted(Comparator.comparing(DevicesDataShowBean::getAverageHeartRate).
+//                        thenComparing(DevicesDataShowBean::getPoint)).collect(Collectors.toList());
+//                tmpList.addAll(hrList);
                 break;
         }
-        mDatas.clear();
-        mDatas.addAll(tmpList);
+//        mDatas.clear();
+//        mDatas.addAll(tmpList);
         notifyDataSetChanged();
 
     }

@@ -20,6 +20,7 @@ import com.jkcq.hrwtv.http.bean.BaseResponse;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -59,7 +60,14 @@ public class MainActivityModelImp extends BasePresenterModel<MainActivityView> i
 
 
     public void postHeartRateData(ArrayList<DevicesDataShowBean> list, String heartRateCourseId, String winGroup, String modeType, long endTime) {
-
+//        Collections.sort(list, new Comparator<DevicesDataShowBean>() {
+//            @Override
+//            public int compare(DevicesDataShowBean devicesDataShowBean, DevicesDataShowBean t1) {
+//                return String.valueOf(t1.getPoint()).compareTo(String.valueOf(devicesDataShowBean.getPoint()));
+//            }
+//        });
+        list.sort(Comparator.comparing(DevicesDataShowBean::getPoint).reversed().thenComparing(DevicesDataShowBean::getCal).reversed());
+        //list.sort(Comparator.comparing(DevicesDataShowBean::getPoint));
         ArrayList<RequestResultEntity> requestResultEntities = new ArrayList<>();
         String strendTime = "";
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA);
@@ -286,7 +294,7 @@ public class MainActivityModelImp extends BasePresenterModel<MainActivityView> i
     public void postCourse(ArrayList<DevicesDataShowBean> sumList, String
             heartRateCourseId, String modeType, long endTime) {
         for (int i = 0; i < sumList.size(); i++) {
-            sumList.get(i).setSortType(Constant.TYPE_CAL);
+            sumList.get(i).setSortType(Constant.TYPE_POINT);
         }
         Collections.sort(sumList);
 
