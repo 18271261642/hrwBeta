@@ -590,6 +590,7 @@ class NPkActivity : BaseMVPActivity<MainActivityView, MainActivityPresenter>(), 
 
                     val courseList = BaseApp.recordHashData[key]?.getmDatas()
                     dataShowBean!!.setmDatas(courseList)
+                    dataShowBean!!.point = BaseApp.recordHashData[key]?.point!!
 
                 }else{
                     dataShowBean!!.joinTime = System.currentTimeMillis()
